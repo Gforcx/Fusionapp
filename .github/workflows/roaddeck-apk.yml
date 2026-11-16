@@ -5,28 +5,66 @@ on:
       - 'roaddeck/**'
       - '.github/workflows/roaddeck-apk.yml'
   workflow_dispatch:
+concurrency:
+  group: roaddeck-apk
+  cancel-in-progress: true
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android SDK
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-      - name: Install Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Use preinstalled Android SDK
+        shell: bash
+        run: |
+          set -e
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ] || [ ! -d "$SDK/build-tools/35.0.0" ]; then
+            set +o pipefail
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+            test "${PIPESTATUS[1]}" -eq 0
+          fi
+          test -f "$SDK/platforms/android-35/android.jar"
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build debug APK
+      - name: Preserve development signing identity
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: roaddeck-development-signing-v1
+      - name: Build APK
         working-directory: roaddeck
-        run: gradle :app:assembleDebug --no-daemon
+        shell: bash
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
+      - name: Verify APK signature and package
+        shell: bash
+        run: |
+          mkdir -p delivery
+          cp roaddeck/app/build/outputs/apk/debug/app-debug.apk delivery/RoadDeck.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs delivery/RoadDeck.apk | tee delivery/signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging delivery/RoadDeck.apk | tee delivery/package.txt
+          (cd delivery && sha256sum RoadDeck.apk > RoadDeck.apk.sha256)
       - uses: actions/upload-artifact@v4
         with:
           name: RoadDeck-apk
-          path: roaddeck/app/build/outputs/apk/debug/app-debug.apk
+          path: delivery/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Publish one current APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if ! gh release view roaddeck-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create roaddeck-latest --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "RoadDeck — APK de développement" --prerelease --notes "APK de développement signée. Les fonctions et essais matériels sont distincts de la compilation."
+          fi
+          gh release upload roaddeck-latest delivery/RoadDeck.apk delivery/RoadDeck.apk.sha256 --repo "$GITHUB_REPOSITORY" --clobber
