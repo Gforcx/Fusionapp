@@ -1,0 +1,37 @@
+name: RoadDeck local APK tools
+on:
+  push:
+    paths:
+      - '.github/workflows/roaddeck-local-tools.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Package official Android build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          BUILD="$SDK/build-tools/35.0.0"
+          if [ ! -f "$BUILD/lib/apksigner.jar" ]; then
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;35.0.0"
+          fi
+          mkdir -p /tmp/roaddeck-local-tools/lib
+          cp "$BUILD/lib/apksigner.jar" /tmp/roaddeck-local-tools/lib/
+          cp "$BUILD/zipalign" "$BUILD/aapt" /tmp/roaddeck-local-tools/
+          if [ -d "$BUILD/lib64" ]; then cp -a "$BUILD/lib64" /tmp/roaddeck-local-tools/; fi
+          cp "$BUILD/source.properties" /tmp/roaddeck-local-tools/
+          cd /tmp/roaddeck-local-tools
+          sha256sum lib/apksigner.jar zipalign aapt > SHA256SUMS
+          tar -C /tmp -czf /tmp/RoadDeck-local-tools.tar.gz roaddeck-local-tools
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RoadDeck-local-APK-tools
+          path: /tmp/RoadDeck-local-tools.tar.gz
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
