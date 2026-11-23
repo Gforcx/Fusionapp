@@ -101,26 +101,31 @@ class Check:
     def write(self, name, text):
         (self.output / name).write_text(text, encoding="utf-8")
 
-    def command(self, args, name=None, timeout=8):
+    def command(self, args, name=None, timeout=8, binary=False):
         command = self.adb + list(args)
         started = time.monotonic()
         try:
             run = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                  timeout=timeout, check=False)
-            out = run.stdout.decode("utf-8", "replace")
+            payload = run.stdout
+            out = "" if binary else payload.decode("utf-8", "replace")
             err = run.stderr.decode("utf-8", "replace")
             code = run.returncode
         except subprocess.TimeoutExpired as error:
-            out = (error.stdout or b"").decode("utf-8", "replace")
+            payload = error.stdout or b""
+            out = "" if binary else payload.decode("utf-8", "replace")
             err = (error.stderr or b"").decode("utf-8", "replace") + "\nADB command timeout"
             code = 124
         except OSError as error:
-            out, err, code = "", str(error), 127
+            payload, out, err, code = b"", "", str(error), 127
         self.records.append({"seconds": round(started - self.started, 3), "argv": command,
                              "durationSeconds": round(time.monotonic() - started, 3),
                              "returncode": code, "stdoutFile": name, "stderr": err})
         if name:
-            self.write(name, out)
+            if binary:
+                (self.output / name).write_bytes(payload)
+            else:
+                self.write(name, out)
             if err:
                 self.write(name + ".stderr.txt", err)
         return out, code
@@ -169,7 +174,11 @@ class Check:
         deadline = time.monotonic() + duration
         samples = []
         while time.monotonic() + 0.1 < deadline:
-            sample = self.sample(f"{name}-{len(samples):02d}", min(4, deadline - time.monotonic()))
+            # The observation period controls when a new measurement may begin.
+            # A measurement already begun always has its complete ADB budget:
+            # truncating it to the last fractions of a second manufactured a
+            # transport timeout even with a healthy service and an unchanged PID.
+            sample = self.sample(f"{name}-{len(samples):02d}", 4)
             sample["expectedPidMatches"] = bool(expected_pid and sample["pids"] == [expected_pid])
             samples.append(sample)
             time.sleep(min(0.5, max(0, deadline - time.monotonic())))
@@ -185,6 +194,37 @@ class Check:
         return self.shell(["am", "start", "-W", "-n", MAIN,
                            "--es", "roaddeckPage", "about", "--ez", "skipWazeAuto", "true"],
                           name + "-launch.txt", 15)
+
+    def capture_debug_evidence(self):
+        """Best-effort read-only evidence on every result, with no UI automation."""
+        evidence = {}
+        commands = [
+            ("activity-lastanr", ["dumpsys", "activity", "lastanr"], 10),
+            ("activity-exit-info", ["dumpsys", "activity", "exit-info", PACKAGE], 10),
+            ("gfxinfo-framestats", ["dumpsys", "gfxinfo", PACKAGE, "framestats"], 10),
+            ("cpuinfo", ["dumpsys", "cpuinfo"], 8),
+            ("memory-info", ["cat", "/proc/meminfo"], 5),
+            ("pressure-cpu", ["cat", "/proc/pressure/cpu"], 5),
+            ("pressure-memory", ["cat", "/proc/pressure/memory"], 5),
+            ("pressure-io", ["cat", "/proc/pressure/io"], 5),
+            ("dropbox-data-app-anr", ["dumpsys", "dropbox", "--print", "data_app_anr"], 15),
+            ("dropbox-system-app-anr", ["dumpsys", "dropbox", "--print", "system_app_anr"], 15),
+            ("anr-directory", ["ls", "-l", "/data/anr"], 5),
+        ]
+        for name, command, timeout in commands:
+            _, code = self.shell(command, name + ".txt", timeout)
+            evidence[name] = {"returncode": code}
+        # /data/anr access depends on the emulator image/ADB identity. A denial is
+        # preserved as evidence; this check never switches ADB to root or changes
+        # file permissions. DropBox/lastanr above remain the fallback.
+        _, pull_code = self.command(["pull", "/data/anr", str(self.output / "anr-traces")],
+                                    "anr-pull.txt", 20)
+        evidence["anr-traces"] = {"returncode": pull_code}
+        _, screen_code = self.command(["exec-out", "screencap", "-p"], "final-screen.png", 12, binary=True)
+        screenshot = self.output / "final-screen.png"
+        evidence["screenshot"] = {"returncode": screen_code,
+                                  "pngHeader": screenshot.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"}
+        self.result["debugEvidence"] = evidence
 
     def run(self):
         log_stream = None
@@ -266,6 +306,7 @@ class Check:
                 self.write("harness-exception.txt", traceback.format_exc())
             finally:
                 self.checkpoint("final")
+                self.capture_debug_evidence()
                 self.command(["logcat", "-d", "-v", "threadtime", "-b", "main", "-b", "system", "-b", "crash"],
                              "logcat-final.txt", 15)
                 if log_stream is not None:
@@ -288,6 +329,11 @@ class Check:
         self.write("application-fatal-exceptions.txt", "\n\n".join(fatal))
         self.result["javaFatalExceptionObserved"] = bool(fatal)
         self.result["nativeFatalMarkerObserved"] = ">>> " + PACKAGE + " <<<" in logs
+        anr_pattern = re.compile(r"\bANR in " + re.escape(PACKAGE) + r"(?=[\s(]|$)")
+        anr = ["\n".join(lines[max(0, index - 2):index + 65])
+               for index, line in enumerate(lines) if anr_pattern.search(line)]
+        self.write("application-anr-excerpts.txt", "\n\n".join(anr))
+        self.result["applicationAnrObserved"] = bool(anr)
         final_dump = (self.output / "final-accessibility.txt").read_text(encoding="utf-8", errors="replace")
         self.result["finalBinding"] = parse_accessibility(final_dump)
         final_pids = (self.output / "final-pid.txt").read_text(encoding="utf-8", errors="replace").split()
@@ -297,13 +343,14 @@ class Check:
         self.result["finishedAtUtc"] = datetime.now(timezone.utc).isoformat()
         self.result["evidenceDirectory"] = str(self.output)
         if (self.result["javaFatalExceptionObserved"] or self.result["nativeFatalMarkerObserved"]
+                or self.result["applicationAnrObserved"]
                 or not self.result["finalBinding"]["healthy"] or not self.result["finalPidStable"]
                 or not self.result.get("activationCommandsSucceeded", False)):
             self.result["status"] = "failed"
         self.write("commands.json", json.dumps(self.records, ensure_ascii=False, indent=2))
         self.write("result.json", json.dumps(self.result, ensure_ascii=False, indent=2))
         print(json.dumps({key: self.result.get(key) for key in
-                          ("status", "api", "javaFatalExceptionObserved", "nativeFatalMarkerObserved", "elapsedSeconds")},
+                          ("status", "api", "javaFatalExceptionObserved", "nativeFatalMarkerObserved", "applicationAnrObserved", "elapsedSeconds")},
                          ensure_ascii=False), flush=True)
 
 

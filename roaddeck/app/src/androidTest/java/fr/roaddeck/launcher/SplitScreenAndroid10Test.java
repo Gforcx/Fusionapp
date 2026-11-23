@@ -56,6 +56,8 @@ public final class SplitScreenAndroid10Test {
     private static final String[] CORNERS = {"corner_top_left", "corner_top_right",
             "corner_bottom_left", "corner_bottom_right"};
     private static final String[] NAMES = {"HG", "HD", "BG", "BD"};
+    private static final String[] CORNER_DESCRIPTIONS = {"Coin haut gauche", "Coin haut droit",
+            "Coin bas gauche", "Coin bas droit"};
     private Instrumentation instrumentation;
     private Context context;
     private UiDevice device;
@@ -430,7 +432,12 @@ public final class SplitScreenAndroid10Test {
     }
 
     private UiObject2 corner(int index) {
-        UiObject2 result = device.wait(Until.findObject(By.res(NAVIGATION, CORNERS[index])), 5000);
+        // API29 shares a node cache between this process's accessibility clients.
+        // A node cached for RoadDeck can omit resource IDs despite UiAutomation's
+        // REPORT_VIEW_IDS flag. The fixture's unique native descriptions remain
+        // available; all window, edge, visibility, counter and touch checks stay intact.
+        UiObject2 result = device.wait(Until.findObject(By.pkg(NAVIGATION)
+                .clazz("android.widget.Button").desc(CORNER_DESCRIPTIONS[index])), 5000);
         assertNotNull("Missing native fixture corner " + CORNERS[index], result);
         return result;
     }

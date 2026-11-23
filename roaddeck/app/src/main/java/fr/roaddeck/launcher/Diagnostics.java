@@ -19,6 +19,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.json.JSONObject;
@@ -27,6 +31,7 @@ import org.json.JSONObject;
 final class Diagnostics {
     private static final int MAX_LOG_BYTES = 32 * 1024;
     private static final int MAX_REPORT_CHARS = 24 * 1024;
+    private static final int MAX_ANR_BYTES = 8 * 1024;
     private static final long LOG_TIMEOUT_MS = 3000;
     private Diagnostics() { }
 
@@ -83,6 +88,8 @@ final class Diagnostics {
 
     @TargetApi(30)
     private static final class Api30 {
+        private static final AtomicBoolean traceReaderBusy = new AtomicBoolean();
+
         static void appendExitHistory(Context context, StringBuilder report) {
             try {
                 ActivityManager manager = context.getSystemService(ActivityManager.class);
@@ -90,22 +97,79 @@ final class Diagnostics {
                 // The API can include an external WebView process: filter to our own UID/name.
                 List<ApplicationExitInfo> records = manager.getHistoricalProcessExitReasons(context.getPackageName(), 0, 20);
                 int count = 0;
+                ApplicationExitInfo latestAnr = null;
                 for (ApplicationExitInfo record : records) {
                     if (record == null || record.getPackageUid() != Process.myUid()
                             || record.getRealUid() != Process.myUid()) continue;
                     String name = record.getProcessName();
                     if (name == null || !(name.equals(context.getPackageName())
                             || name.startsWith(context.getPackageName() + ":"))) continue;
+                    if (name.equals(context.getPackageName()) && record.getReason() == ApplicationExitInfo.REASON_ANR
+                            && (latestAnr == null || record.getTimestamp() > latestAnr.getTimestamp())) latestAnr = record;
+                    if (count == 5) continue;
                     report.append(++count).append(". ").append(time(record.getTimestamp()))
                             .append(" ; PID ").append(record.getPid()).append(" ; ").append(oneLine(name, 180))
                             .append(" ; raison=").append(reason(record.getReason())).append(" (").append(record.getReason())
                             .append(") ; status=").append(record.getStatus()).append('\n');
-                    if (count == 5) break;
                 }
                 if (count == 0) report.append("Aucun arrêt de notre processus disponible dans l’historique conservé par Android.\n");
                 report.append("Status : code de sortie pour EXIT_SELF, numéro du signal pour SIGNALED ; valeur brute autrement.\n");
+                report.append("\nPILE DU DERNIER ARRÊT ANR DU PROCESSUS PRINCIPAL\n");
+                if (latestAnr == null) report.append("Aucun arrêt ANR du processus principal parmi les enregistrements disponibles.\n");
+                else {
+                    report.append(time(latestAnr.getTimestamp())).append(" ; PID ").append(latestAnr.getPid()).append('\n');
+                    report.append(readAnrWithDeadline(latestAnr, context.getPackageName()));
+                }
             } catch (Exception error) {
                 report.append("Historique indisponible (").append(error.getClass().getSimpleName()).append(").\n");
+            }
+        }
+
+        private static String readAnrWithDeadline(ApplicationExitInfo record, String packageName) {
+            if (!traceReaderBusy.compareAndSet(false, true))
+                return "Trace indisponible : une lecture précédente n’est pas encore terminée.\n";
+            FutureTask<String> task = new FutureTask<>(() -> readAnr(record, packageName));
+            Thread reader = new Thread(() -> {
+                try { task.run(); }
+                finally { traceReaderBusy.set(false); }
+            }, "RoadDeck-AnrTrace");
+            reader.setDaemon(true);
+            try {
+                reader.start();
+                return task.get(3, TimeUnit.SECONDS);
+            } catch (TimeoutException error) {
+                task.cancel(true);
+                return "Trace indisponible : attente limitée à 3 secondes, interruption demandée.\n";
+            } catch (InterruptedException error) {
+                task.cancel(true);
+                Thread.currentThread().interrupt();
+                return "Trace indisponible : demande interrompue.\n";
+            } catch (Exception error) {
+                task.cancel(true);
+                if (!reader.isAlive()) traceReaderBusy.set(false);
+                return "Trace indisponible (" + error.getClass().getSimpleName() + ").\n";
+            }
+        }
+
+        private static String readAnr(ApplicationExitInfo record, String packageName) {
+            // API30 may return null. Only ANR text is requested, never native-crash protobufs.
+            try (InputStream stream = record.getTraceInputStream()) {
+                if (stream == null) return "Trace ANR non conservée ou non fournie par Android.\n";
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                while (bytes.size() < MAX_ANR_BYTES && !Thread.currentThread().isInterrupted()) {
+                    int count = stream.read(buffer, 0, Math.min(buffer.length, MAX_ANR_BYTES - bytes.size()));
+                    if (count < 0) break;
+                    if (count == 0) break;
+                    bytes.write(buffer, 0, count);
+                }
+                if (Thread.currentThread().isInterrupted()) return "Lecture ANR interrompue.\n";
+                String filtered = filterOwnAnrFrames(bytes.toString(StandardCharsets.UTF_8.name()), packageName, record.getPid());
+                return (filtered.isEmpty() ? "Aucune pile main/RenderThread identifiable dans l’extrait ; format non reconnu ou contenu absent.\n" : filtered)
+                        + (bytes.size() == MAX_ANR_BYTES ? "[Extrait limité à 8 Kio ; trace possiblement incomplète]\n" : "")
+                        + "Seuls les états reconnus et les noms de classes/méthodes sont conservés ; ces piles ne prouvent pas à elles seules la cause.\n";
+            } catch (Exception error) {
+                return "Trace ANR indisponible (" + error.getClass().getSimpleName() + ").\n";
             }
         }
 
@@ -130,6 +194,54 @@ final class Diagnostics {
                 default: return "UNKNOWN";
             }
         }
+    }
+
+    /** Strict ART text subset: exact historical PID/process, main/RenderThread only, no free text. */
+    static String filterOwnAnrFrames(String raw, String processName, int expectedPid) {
+        if (raw == null || processName == null || expectedPid <= 0) return "";
+        if (raw.length() > MAX_ANR_BYTES) raw = raw.substring(0, MAX_ANR_BYTES);
+        Pattern processHeader = Pattern.compile("^----- pid (\\d+) at .+ -----$");
+        Pattern javaThread = Pattern.compile("^\"(main|RenderThread)\" (?:daemon )?prio=\\d+ tid=\\d+ ([A-Za-z]+)\\s*$");
+        Pattern nativeThread = Pattern.compile("^\"(main|RenderThread)\" sysTid=\\d+\\s*$");
+        Pattern javaFrame = Pattern.compile("^\\s*at\\s+([A-Za-z_$][A-Za-z0-9_.$]*(?:\\.<(?:init|clinit)>)?)\\([^\\r\\n]*\\)\\s*$");
+        Pattern nativeFrame = Pattern.compile("^\\s*native:\\s*#\\d+\\s+pc\\s+[0-9a-fA-F]+\\s+\\S+\\s+\\(([A-Za-z_][A-Za-z0-9_:~]*)(?:\\(|\\+|\\))");
+        boolean ownPid = false, ownProcess = false, selectedThread = false;
+        int frames = 0;
+        StringBuilder clean = new StringBuilder();
+        for (String line : raw.split("\\r?\\n")) {
+            Matcher header = processHeader.matcher(line);
+            if (header.matches()) {
+                ownPid = Integer.toString(expectedPid).equals(header.group(1));
+                ownProcess = false; selectedThread = false; continue;
+            }
+            if (line.startsWith("-----")) { ownPid = false; ownProcess = false; selectedThread = false; continue; }
+            if (line.startsWith("Cmd line:")) {
+                ownProcess = ownPid && line.equals("Cmd line: " + processName);
+                selectedThread = false; continue;
+            }
+            if (!ownProcess) continue;
+            if (line.startsWith("\"")) {
+                selectedThread = false; frames = 0;
+                Matcher thread = javaThread.matcher(line);
+                Matcher nativeOnly = nativeThread.matcher(line);
+                if (thread.matches()) {
+                    String state = thread.group(2);
+                    if (!state.matches("Native|Runnable|Blocked|Waiting|TimedWaiting|Sleeping|Suspended|WaitingForGcToComplete|WaitingForCheckPointsToRun")) state = "unknown";
+                    clean.append(thread.group(1)).append(" ; state=").append(state).append('\n');
+                    selectedThread = true;
+                } else if (nativeOnly.matches()) {
+                    clean.append(nativeOnly.group(1)).append(" ; state=unknown\n");
+                    selectedThread = true;
+                }
+                continue;
+            }
+            if (!selectedThread || frames >= 32) continue;
+            Matcher frame = javaFrame.matcher(line);
+            Matcher nativeCall = nativeFrame.matcher(line);
+            if (frame.matches()) { clean.append("  at ").append(frame.group(1)).append('\n'); frames++; }
+            else if (nativeCall.find()) { clean.append("  native ").append(nativeCall.group(1)).append('\n'); frames++; }
+        }
+        return clean.toString();
     }
 
     private static String readOwnCrashFrames(String packageName) {
