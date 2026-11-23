@@ -421,7 +421,7 @@ public final class SplitScreenService extends AccessibilityService {
                 break;
             case WAIT_CLEAR_FOR_SWAP:
                 if (stable(!latest.divider, latest)) {
-                    enter(Phase.WAIT_PANEL_FULL, 6500, "Préparation du panneau droit…");
+                    enter(Phase.WAIT_PANEL_FULL, 12000, "Préparation du panneau droit…");
                     launchPanel();
                 }
                 break;
