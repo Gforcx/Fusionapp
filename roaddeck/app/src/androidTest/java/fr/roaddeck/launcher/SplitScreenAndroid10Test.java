@@ -15,9 +15,12 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
+import android.webkit.WebView;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
@@ -33,9 +36,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,6 +67,11 @@ public final class SplitScreenAndroid10Test {
         @Override protected void failed(Throwable error, Description description) {
             if (device != null && context != null) {
                 device.takeScreenshot(new File(evidenceDirectory(), "split-failure.png"));
+                try {
+                    device.dumpWindowHierarchy(new File(evidenceDirectory(), "split-failure-hierarchy.xml"));
+                } catch (Exception hierarchyError) {
+                    android.util.Log.w("SplitScreenAndroid10Test", "Could not dump accessibility hierarchy", hierarchyError);
+                }
                 writeState(error.toString());
             }
         }
@@ -150,7 +161,11 @@ public final class SplitScreenAndroid10Test {
         instrumentation.runOnMainSync(() -> accepted.set(SplitScreenService.begin(main)));
         assertTrue("Split request rejected: " + snapshot(), accepted.get());
         // The engine can spend 55 seconds resolving an OEM's initial split orientation.
-        await("native split active", 65000, () -> snapshot().optBoolean("active"));
+        await("native split active", 65000, () -> {
+            JSONObject state = snapshot();
+            assertNotEquals("Split engine failed: " + state, "FAILED", state.optString("state"));
+            return state.optBoolean("active");
+        });
 
         SidePanelActivity panel = awaitActivity(SidePanelActivity.class, 10000);
         int panelTask = taskId(panel);
@@ -174,14 +189,15 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Failed to save split screenshot", device.takeScreenshot(
                 new File(evidenceDirectory(), "split-android10.png")));
 
-        UiObject2 settingsButton = device.wait(Until.findObject(By.pkg(ROADDECK).desc("Réglages")), 10000);
-        assertNotNull("The side panel settings button must be accessible", settingsButton);
-        settingsButton.click();
+        tapPanelButton(panel, "settings", "Réglages");
         PanelSettingsActivity settings = awaitActivity(PanelSettingsActivity.class, 15000);
         assertEquals("Settings must stay in the side panel task", panelTask, taskId(settings));
         assertMultiWindow(settings);
-        await("settings WebView is rendered", 15000,
-                () -> device.hasObject(By.pkg(ROADDECK).text("Réglages")));
+        await("compact settings WebView is rendered", 15000, () -> {
+            JSONObject page = readDomElement(settings, "dialogTitle");
+            return page.optBoolean("panelSettings") && page.optBoolean("visible")
+                    && "H2".equals(page.optString("tag")) && "Réglages".equals(page.optString("text"));
+        });
         await("pair remains active while settings are open", 5000, () -> snapshot().optBoolean("active"));
         Rect settingsNavigation = awaitWindow(NAVIGATION, 5000);
         assertRectNear("Opening settings must not enlarge or move the navigation window", navigation, settingsNavigation);
@@ -200,10 +216,7 @@ public final class SplitScreenAndroid10Test {
                 awaitWindow(NAVIGATION, 5000));
         assertFourCorners(navigation, 1);
 
-        UiObject2 closeButton = device.wait(Until.findObject(By.pkg(ROADDECK)
-                .desc("Fermer les commandes et afficher Waze en grand")), 10000);
-        assertNotNull("The closePair action must be accessible", closeButton);
-        closeButton.click();
+        tapPanelButton(panel, "closeButton", "Fermer les commandes et afficher Waze en grand");
         await("pair closed and navigation restored full screen", 25000, () -> {
             JSONObject state = snapshot();
             Rect bounds = windowBounds(NAVIGATION);
@@ -229,6 +242,104 @@ public final class SplitScreenAndroid10Test {
     @After public void recordFinalState() { if (context != null) writeState("instrumentation finished"); }
 
     private JSONObject snapshot() { return SplitScreenService.snapshot(context); }
+
+    /**
+     * Old WebView versions may omit HTML controls from the accessibility tree.
+     * The fallback only reads DOM geometry, then injects a real screen touch.
+     * It never calls an onclick handler, Native.post, openSettings, or closePair.
+     */
+    private void tapPanelButton(Activity activity, String id, String description) {
+        UiObject2 accessible = device.wait(Until.findObject(By.pkg(ROADDECK).desc(description)), 1500);
+        if (accessible == null && "settings".equals(id))
+            accessible = device.findObject(By.pkg(ROADDECK).text("Réglages"));
+        if (accessible != null && accessible.isEnabled() && !accessible.getVisibleBounds().isEmpty()) {
+            accessible.click();
+            return;
+        }
+        AtomicReference<JSONObject> measured = new AtomicReference<>();
+        await("visible DOM button " + id, 10000, () -> {
+            JSONObject page = readDomElement(activity, id);
+            measured.set(page);
+            return page.optBoolean("visible") && page.optBoolean("hit")
+                    && !page.optBoolean("disabled") && "BUTTON".equals(page.optString("tag"));
+        });
+        JSONObject page = measured.get();
+        double dpr = page.optDouble("dpr", 1);
+        double scaleX = page.optDouble("nativeWidth") / page.optDouble("viewportWidth");
+        double scaleY = page.optDouble("nativeHeight") / page.optDouble("viewportHeight");
+        assertTrue("DOM viewport and native WebView scale must agree: " + page,
+                Double.isFinite(scaleX) && Double.isFinite(scaleY) && dpr > 0
+                        && Math.abs(scaleX - dpr) < Math.max(0.05, dpr * 0.05)
+                        && Math.abs(scaleY - dpr) < Math.max(0.05, dpr * 0.05));
+        int x = (int) Math.round(page.optDouble("nativeX")
+                + (page.optDouble("left") + page.optDouble("width") / 2) * scaleX);
+        int y = (int) Math.round(page.optDouble("nativeY")
+                + (page.optDouble("top") + page.optDouble("height") / 2) * scaleY);
+        assertTrue("Measured button center must be on screen", x >= 0 && y >= 0
+                && x < device.getDisplayWidth() && y < device.getDisplayHeight());
+        android.util.Log.i("SplitScreenAndroid10Test", "DOM-measured touch id=" + id
+                + " x=" + x + " y=" + y + " dpr=" + dpr + " geometry=" + page);
+        assertTrue("Could not inject measured touch for " + id, device.click(x, y));
+    }
+
+    /** All JavaScript below is read-only, including the hit-test at the element center. */
+    private JSONObject readDomElement(Activity activity, String id) {
+        AtomicReference<JSONObject> result = new AtomicReference<>(new JSONObject());
+        CountDownLatch completed = new CountDownLatch(1);
+        String script = "(function(){var e=document.getElementById(" + JSONObject.quote(id) + ");"
+                + "var s=document.getElementById('stage');"
+                + "var o={panelSettings:!!s&&s.classList.contains('panel-settings'),"
+                + "dpr:window.devicePixelRatio||1,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};"
+                + "if(e){var r=e.getBoundingClientRect(),c=window.getComputedStyle(e);"
+                + "var x=r.left+r.width/2,y=r.top+r.height/2,h=document.elementFromPoint(x,y);"
+                + "o.left=r.left;o.top=r.top;o.width=r.width;o.height=r.height;o.tag=e.tagName;"
+                + "o.text=(e.textContent||'').trim();o.disabled=!!e.disabled;"
+                + "o.visible=e.getClientRects().length>0&&r.width>0&&r.height>0"
+                + "&&c.display!=='none'&&c.visibility!=='hidden'&&Number(c.opacity)!==0"
+                + "&&x>=0&&y>=0&&x<window.innerWidth&&y<window.innerHeight;"
+                + "o.hit=!!h&&(h===e||e.contains(h));}return JSON.stringify(o);})()";
+        instrumentation.runOnMainSync(() -> {
+            WebView web = findWebView(activity.getWindow().getDecorView());
+            if (web == null || !web.isShown() || activity.isFinishing() || activity.isDestroyed()) {
+                completed.countDown();
+                return;
+            }
+            int[] location = new int[2];
+            web.getLocationOnScreen(location);
+            int width = web.getWidth(), height = web.getHeight();
+            web.evaluateJavascript(script, encoded -> {
+                try {
+                    Object decoded = new JSONTokener(encoded).nextValue();
+                    JSONObject page = decoded instanceof String ? new JSONObject((String) decoded)
+                            : decoded instanceof JSONObject ? (JSONObject) decoded : new JSONObject();
+                    page.put("nativeX", location[0]).put("nativeY", location[1])
+                            .put("nativeWidth", width).put("nativeHeight", height);
+                    result.set(page);
+                } catch (Exception error) {
+                    android.util.Log.w("SplitScreenAndroid10Test", "Could not read DOM geometry", error);
+                } finally { completed.countDown(); }
+            });
+        });
+        try {
+            assertTrue("WebView did not answer read-only DOM query", completed.await(3, TimeUnit.SECONDS));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("Interrupted during DOM measurement", interrupted);
+        }
+        return result.get();
+    }
+
+    private WebView findWebView(View view) {
+        if (view instanceof WebView) return (WebView) view;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                WebView found = findWebView(group.getChildAt(i));
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
 
     private Rect snapshotRect(String key) throws Exception {
         JSONObject box = snapshot().getJSONObject(key);
