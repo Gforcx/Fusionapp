@@ -74,6 +74,28 @@ public final class SplitGeometryTest {
         check(SplitGeometry.onLeft(waze, 1024) && !SplitGeometry.onLeft(panel, 1024),
                 "Physical left and right are distinguished");
 
+        // Actual API29 CI regression: Recents minimizes the primary into 104px
+        // at the right edge until a secondary app is launched. That is progress,
+        // not failure, but it must never be reported as an active Waze/RoadDeck pair.
+        SplitGeometry.Box rightPeek = box(1176, 0, 1280, 720);
+        SplitGeometry.Box leftPeek = box(0, 0, 104, 720);
+        check(SplitGeometry.dockTransition(rightPeek, 1280, 720), "Right dock peek advances setup");
+        check(SplitGeometry.dockTransition(leftPeek, 1280, 720), "Left dock peek advances setup");
+        check(!SplitGeometry.onLeft(rightPeek, 1280) && SplitGeometry.onLeft(leftPeek, 1280),
+                "Peek still identifies the correct physical side");
+        check(!SplitGeometry.reduced(rightPeek, 1280, 720), "Peek is not a usable full activity");
+        check(SplitGeometry.pair(rightPeek, box(0, 0, 1166, 720), 1280, 720, 48).arrangement
+                == SplitGeometry.NONE, "Waze peek can never activate or receive a divider mask");
+        check(SplitGeometry.pair(box(0, 0, 1166, 720), rightPeek, 1280, 720, 48).arrangement
+                == SplitGeometry.NONE, "Panel peek can never activate or receive a divider mask");
+        check(!SplitGeometry.dockTransition(box(0, 0, 1280, 720), 1280, 720),
+                "Fullscreen app does not prove a dock transition");
+        check(!SplitGeometry.dockTransition(box(1280, 0, 1280, 720), 1280, 720),
+                "Zero-width disappeared app does not prove a dock transition");
+        check(!SplitGeometry.dockTransition(box(1270, 0, 1290, 720), 1280, 720),
+                "Off-screen transitional surface rejected");
+        check(!SplitGeometry.dockTransition(null, 1280, 720), "Missing transitional surface rejected");
+
         // Across common head-unit sizes, every accepted cover must be entirely outside both apps.
         Random random = new Random(0x52444cL);
         int[] widths = {800, 1024, 1280, 1920};

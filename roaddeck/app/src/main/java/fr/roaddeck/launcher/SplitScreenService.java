@@ -55,6 +55,7 @@ public final class SplitScreenService extends AccessibilityService {
     private long scanAt, deadline, overallDeadline, lastGoodPairAt;
     private int stableCount, stableSignature;
     private String message = "Prêt à ouvrir Waze à gauche et RoadDeck à droite.";
+    private String failureStage = "";
     private Observation latest = new Observation();
     private WindowManager windowManager;
     private View seam;
@@ -221,6 +222,7 @@ public final class SplitScreenService extends AccessibilityService {
 
     private boolean startPair(Activity activity) {
         if (pending()) return true;
+        failureStage = "";
         latest = observe();
         if (confirmedPair(latest)) {
             phase = Phase.RUNNING;
@@ -261,6 +263,7 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private void startClose() {
+        failureStage = "";
         cancelScans();
         removeSeam();
         active = false;
@@ -318,7 +321,7 @@ public final class SplitScreenService extends AccessibilityService {
                 break;
             case WAIT_DOCK_WAZE:
                 if (stable(latest.divider
-                        && SplitGeometry.reduced(latest.waze, latest.screenWidth, latest.screenHeight), latest)) {
+                        && SplitGeometry.dockTransition(latest.waze, latest.screenWidth, latest.screenHeight), latest)) {
                     if (SplitGeometry.onLeft(latest.waze, latest.screenWidth)) {
                         enter(Phase.WAIT_PAIR, 8000, "Ouverture du panneau RoadDeck à droite…");
                         launchPanel();
@@ -344,7 +347,7 @@ public final class SplitScreenService extends AccessibilityService {
                 break;
             case WAIT_DOCK_PANEL:
                 if (stable(latest.divider && panelVisible
-                        && SplitGeometry.reduced(latest.panel, latest.screenWidth, latest.screenHeight), latest)) {
+                        && SplitGeometry.dockTransition(latest.panel, latest.screenWidth, latest.screenHeight), latest)) {
                     if (SplitGeometry.onLeft(latest.panel, latest.screenWidth)) {
                         fail("L’autoradio n’a pas conservé le panneau à droite. Aucune partie de Waze n’est masquée.");
                     } else {
@@ -518,6 +521,7 @@ public final class SplitScreenService extends AccessibilityService {
     private void fail(String text) {
         cancelScans();
         removeSeam();
+        failureStage = phase.name();
         phase = Phase.FAILED;
         active = false;
         message = text;
@@ -638,6 +642,8 @@ public final class SplitScreenService extends AccessibilityService {
             JSONObject out = new JSONObject().put("mode", "split").put("active", active)
                     .put("requested", pending()).put("accessibilityGranted", instance == this)
                     .put("message", message).put("state", phase.name())
+                    .put("failureStage", failureStage).put("dividerObserved", latest.divider)
+                    .put("screenWidth", latest.screenWidth).put("screenHeight", latest.screenHeight)
                     .put("dividerCovered", seam != null && seam.getAlpha() > 0.99f);
             if (latest.waze != null) out.put("wazeBounds", boundsJson(latest.waze));
             if (latest.panel != null) out.put("panelBounds", boundsJson(latest.panel));

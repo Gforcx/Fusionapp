@@ -62,6 +62,17 @@ final class SplitGeometry {
                 && (long) box.height() * 100 >= (long) height * 40;
     }
 
+    /**
+     * AOSP can temporarily minimize the docked primary into a narrow strip while
+     * Recents/Home is choosing the secondary app. Accept that surface only as a
+     * transition signal after a divider has been observed, never as a usable pair.
+     */
+    static boolean dockTransition(Box box, int width, int height) {
+        return inside(box, width, height) && width >= height
+                && (long) box.width() * 100 <= (long) width * 85
+                && (long) box.height() * 100 >= (long) height * 40;
+    }
+
     static boolean fullWidth(Box box, int width, int height) {
         return inside(box, width, height)
                 && (long) box.width() * 100 >= (long) width * 85
