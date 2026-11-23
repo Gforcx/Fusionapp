@@ -223,10 +223,13 @@ public final class SplitScreenAndroid10Test {
         tapPanelButton(panel, "closeButton", "Fermer les commandes et afficher Waze en grand");
         await("pair closed and navigation restored full screen", 25000, () -> {
             JSONObject state = snapshot();
+            // Do not repopulate API29's shared node cache with our own transitioning
+            // activity while the engine is closing it. Verify native windows once
+            // the engine has finished; its boolean alone still cannot pass this test.
+            if (state.optBoolean("active") || state.optBoolean("requested")
+                    || !"IDLE".equals(state.optString("state"))) return false;
             Rect bounds = windowBounds(NAVIGATION);
-            return !state.optBoolean("active") && !state.optBoolean("requested")
-                    && "IDLE".equals(state.optString("state"))
-                    && bounds != null && bounds.width() >= device.getDisplayWidth() * 0.90;
+            return bounds != null && bounds.width() >= device.getDisplayWidth() * 0.90;
         });
         Rect fullScreen = awaitWindow(NAVIGATION, 5000);
         assertTrue("The real navigation window must expand after closePair", fullScreen.width() > navigation.width() * 1.4);
@@ -256,9 +259,14 @@ public final class SplitScreenAndroid10Test {
         UiObject2 accessible = device.wait(Until.findObject(By.pkg(ROADDECK).desc(description)), 1500);
         if (accessible == null && "settings".equals(id))
             accessible = device.findObject(By.pkg(ROADDECK).text("Réglages"));
-        if (accessible != null && accessible.isEnabled() && !accessible.getVisibleBounds().isEmpty()) {
-            accessible.click();
-            return;
+        if (accessible != null && accessible.isEnabled()) {
+            Rect target = accessible.getVisibleBounds();
+            if (!target.isEmpty()) {
+                clearAutomationNodeCache();
+                assertTrue("Could not inject native touch for " + id,
+                        device.click(target.centerX(), target.centerY()));
+                return;
+            }
         }
         AtomicReference<JSONObject> measured = new AtomicReference<>();
         await("visible DOM button " + id, 10000, () -> {
@@ -283,7 +291,18 @@ public final class SplitScreenAndroid10Test {
                 && x < device.getDisplayWidth() && y < device.getDisplayHeight());
         android.util.Log.i("SplitScreenAndroid10Test", "DOM-measured touch id=" + id
                 + " x=" + x + " y=" + y + " dpr=" + dpr + " geometry=" + page);
+        clearAutomationNodeCache();
         assertTrue("Could not inject measured touch for " + id, device.click(x, y));
+    }
+
+    private void clearAutomationNodeCache() {
+        // UiAutomation.setServiceInfo clears AccessibilityInteractionClient's cache.
+        // Keep the same configuration: only discard nodes read during measurement.
+        // Otherwise API29's event thread can hold the shared cache lock while it
+        // waits for a node refresh from this same process's UI thread.
+        AccessibilityServiceInfo unchanged = automation.getServiceInfo();
+        assertNotNull("UiAutomation must remain connected before injecting touch", unchanged);
+        automation.setServiceInfo(unchanged);
     }
 
     /** All JavaScript below is read-only, including the hit-test at the element center. */
