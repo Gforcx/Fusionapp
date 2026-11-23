@@ -36,8 +36,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
@@ -62,6 +60,7 @@ public final class SplitScreenAndroid10Test {
     private Context context;
     private UiDevice device;
     private UiAutomation automation;
+    private DomProbe domProbe;
 
     @Rule public final TestWatcher evidence = new TestWatcher() {
         @Override protected void failed(Throwable error, Description description) {
@@ -196,6 +195,7 @@ public final class SplitScreenAndroid10Test {
         await("compact settings WebView is rendered", 15000, () -> {
             JSONObject page = readDomElement(settings, "dialogTitle");
             return page.optBoolean("panelSettings") && page.optBoolean("visible")
+                    && page.optBoolean("visualStateReady")
                     && "H2".equals(page.optString("tag")) && "Réglages".equals(page.optString("text"));
         });
         await("pair remains active while settings are open", 5000, () -> snapshot().optBoolean("active"));
@@ -284,8 +284,15 @@ public final class SplitScreenAndroid10Test {
 
     /** All JavaScript below is read-only, including the hit-test at the element center. */
     private JSONObject readDomElement(Activity activity, String id) {
-        AtomicReference<JSONObject> result = new AtomicReference<>(new JSONObject());
-        CountDownLatch completed = new CountDownLatch(1);
+        if (domProbe == null || domProbe.activity != activity || !domProbe.id.equals(id))
+            domProbe = new DomProbe(activity, id);
+        DomProbe probe = domProbe;
+        JSONObject previous = probe.result.get();
+        // Poll without blocking the test thread or enqueuing duplicate renderer work.
+        // The caller's existing deadline is the only timeout; there is no nested 3s abort.
+        if (!probe.pending.compareAndSet(false, true)) return previous;
+        long requestedAt = SystemClock.uptimeMillis();
+        probe.phase = "queued on UI thread";
         String script = "(function(){var e=document.getElementById(" + JSONObject.quote(id) + ");"
                 + "var s=document.getElementById('stage');"
                 + "var o={panelSettings:!!s&&s.classList.contains('panel-settings'),"
@@ -298,35 +305,80 @@ public final class SplitScreenAndroid10Test {
                 + "&&c.display!=='none'&&c.visibility!=='hidden'&&Number(c.opacity)!==0"
                 + "&&x>=0&&y>=0&&x<window.innerWidth&&y<window.innerHeight;"
                 + "o.hit=!!h&&(h===e||e.contains(h));}return JSON.stringify(o);})()";
-        instrumentation.runOnMainSync(() -> {
-            WebView web = findWebView(activity.getWindow().getDecorView());
-            if (web == null || !web.isShown() || activity.isFinishing() || activity.isDestroyed()) {
-                completed.countDown();
-                return;
+        activity.runOnUiThread(() -> {
+            try {
+                WebView web = findWebView(activity.getWindow().getDecorView());
+                JSONObject nativeState = new JSONObject().put("id", id)
+                        .put("activity", activity.getClass().getSimpleName());
+                if (web == null || activity.isFinishing() || activity.isDestroyed()) {
+                    probe.phase = "activity or WebView unavailable";
+                    probe.result.set(nativeState);
+                    probe.pending.set(false);
+                    return;
+                }
+                int[] location = new int[2];
+                web.getLocationOnScreen(location);
+                nativeState.put("nativeX", location[0]).put("nativeY", location[1])
+                        .put("nativeWidth", web.getWidth()).put("nativeHeight", web.getHeight())
+                        .put("url", web.getUrl()).put("progress", web.getProgress())
+                        .put("viewShown", web.isShown());
+                probe.result.set(nativeState);
+                if (!web.isShown() || web.getProgress() < 100 || web.getUrl() == null
+                        || !web.getUrl().startsWith("https://appassets.androidplatform.net/assets/ui/")) {
+                    probe.phase = "waiting for local document load";
+                    probe.pending.set(false);
+                    return;
+                }
+                probe.phase = "waiting for DOM callback";
+                web.evaluateJavascript(script, encoded -> {
+                    try {
+                        Object decoded = new JSONTokener(encoded).nextValue();
+                        JSONObject page = decoded instanceof String ? new JSONObject((String) decoded)
+                                : decoded instanceof JSONObject ? (JSONObject) decoded : new JSONObject();
+                        for (java.util.Iterator<String> keys = nativeState.keys(); keys.hasNext();) {
+                            String key = keys.next(); page.put(key, nativeState.get(key));
+                        }
+                        page.put("callbackDelayMs", SystemClock.uptimeMillis() - requestedAt);
+                        probe.result.set(page);
+                        if ("dialogTitle".equals(id) && page.optBoolean("panelSettings")
+                                && page.optBoolean("visible") && "Réglages".equals(page.optString("text"))) {
+                            probe.phase = "waiting for visual state acknowledgement";
+                            web.postVisualStateCallback(requestedAt, new WebView.VisualStateCallback() {
+                                @Override public void onComplete(long requestId) {
+                                    try {
+                                        probe.result.set(new JSONObject(page.toString()).put("visualStateReady", true));
+                                        probe.phase = "DOM and visual state ready";
+                                    } catch (Exception error) {
+                                        probe.phase = "visual acknowledgement error: " + error;
+                                    } finally { probe.pending.set(false); }
+                                }
+                            });
+                        } else {
+                            probe.phase = "DOM answered";
+                            probe.pending.set(false);
+                        }
+                    } catch (Exception error) {
+                        probe.phase = "DOM query error: " + error;
+                        probe.pending.set(false);
+                        android.util.Log.w("SplitScreenAndroid10Test", "Could not read DOM geometry", error);
+                    }
+                });
+            } catch (Exception error) {
+                probe.phase = "native DOM probe error: " + error;
+                probe.pending.set(false);
+                android.util.Log.w("SplitScreenAndroid10Test", "Could not schedule DOM query", error);
             }
-            int[] location = new int[2];
-            web.getLocationOnScreen(location);
-            int width = web.getWidth(), height = web.getHeight();
-            web.evaluateJavascript(script, encoded -> {
-                try {
-                    Object decoded = new JSONTokener(encoded).nextValue();
-                    JSONObject page = decoded instanceof String ? new JSONObject((String) decoded)
-                            : decoded instanceof JSONObject ? (JSONObject) decoded : new JSONObject();
-                    page.put("nativeX", location[0]).put("nativeY", location[1])
-                            .put("nativeWidth", width).put("nativeHeight", height);
-                    result.set(page);
-                } catch (Exception error) {
-                    android.util.Log.w("SplitScreenAndroid10Test", "Could not read DOM geometry", error);
-                } finally { completed.countDown(); }
-            });
         });
-        try {
-            assertTrue("WebView did not answer read-only DOM query", completed.await(3, TimeUnit.SECONDS));
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            throw new AssertionError("Interrupted during DOM measurement", interrupted);
-        }
-        return result.get();
+        return previous;
+    }
+
+    private static final class DomProbe {
+        final Activity activity;
+        final String id;
+        final AtomicBoolean pending = new AtomicBoolean();
+        final AtomicReference<JSONObject> result = new AtomicReference<>(new JSONObject());
+        volatile String phase = "not started";
+        DomProbe(Activity activity, String id) { this.activity = activity; this.id = id; }
     }
 
     private WebView findWebView(View view) {
@@ -448,11 +500,15 @@ public final class SplitScreenAndroid10Test {
 
     private void await(String description, long timeout, Condition condition) {
         long deadline = SystemClock.uptimeMillis() + timeout;
-        do {
-            if (condition.evaluate()) return;
-            SystemClock.sleep(100);
-        } while (SystemClock.uptimeMillis() < deadline);
-        fail("Timed out: " + description + ". Engine snapshot: " + snapshot());
+        while (SystemClock.uptimeMillis() < deadline) {
+            boolean satisfied = condition.evaluate();
+            long remaining = deadline - SystemClock.uptimeMillis();
+            if (satisfied && remaining >= 0) return;
+            if (remaining <= 0) break;
+            SystemClock.sleep(Math.min(100, remaining));
+        }
+        String domState = domProbe == null ? "none" : domProbe.phase + " " + domProbe.result.get();
+        fail("Timed out: " + description + ". Engine snapshot: " + snapshot() + ". Last DOM probe: " + domState);
     }
 
     private File evidenceDirectory() {
