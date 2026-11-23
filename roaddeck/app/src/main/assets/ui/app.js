@@ -246,7 +246,7 @@
         clearSecret:()=>{send('saveSettings',{clearSecret:true});},
         weatherRefresh:()=>{if(saveSettings())send('weatherRefresh');}
     };
-    for(const type of ['wazeSetup','wazeBack','wazeClose','appInfo','notificationAccess','permissions','notificationPermission','defaultLauncher','androidSettings','wifiSettings','bluetoothSettings','diagnostics','openMusic','openTuya'])actions[type]=()=>send(type);
+    for(const type of ['wazeSetup','wazeBack','wazeClose','appInfo','notificationAccess','permissions','notificationPermission','defaultLauncher','androidSettings','wifiSettings','bluetoothSettings','diagnostics','copyDiagnostics','openMusic','openTuya'])actions[type]=()=>send(type);
     document.addEventListener('click',event=>{
         const section=event.target.closest('[data-section]');
         if(section){openSettings(section.dataset.section);return;}
@@ -313,13 +313,16 @@
                 case 'wazeState': state.waze=data||{};renderWaze();break;
                 case 'diagnostics':
                     const panel=data.wazePanel||{};
-                    const accessibilityGranted=typeof data.accessibilityGranted==='boolean'?data.accessibilityGranted:!!panel.accessibilityGranted;
-                    $('diagnostics').textContent=[
+                    const accessibilityGranted=typeof data.accessibilityGranted==='boolean'?data.accessibilityGranted:panel.accessibilityGranted;
+                    const accessibilityConnected=typeof data.accessibilityConnected==='boolean'?data.accessibilityConnected:panel.serviceConnected;
+                    const diagnosticLines=[
                         `${data.device||''} — Android ${data.android||'?'} (API ${data.sdk||'?'})`,
                         `Écran : ${data.width||'?'} × ${data.height||'?'}`,
                         `Waze installé : ${data.wazeInstalled?'oui':'non'}`,
                         `Mode : ${panel.mode==='split'?'écran partagé':panel.mode||'écran partagé'}`,
-                        `Assistant d’écran partagé : ${accessibilityGranted?'activé':'non activé'}`,
+                        `Autorisation d’accessibilité accordée : ${accessibilityGranted===true?'oui':accessibilityGranted===false?'non':'non déterminée'}`,
+                        `Service d’accessibilité connecté : ${accessibilityConnected===true?'oui':accessibilityConnected===false?'non':'non déterminé'}`,
+                        `Commande d’écran partagé : ${panel.splitActionAvailability==='available'?'disponible':panel.splitActionAvailability==='unavailable'?'absente':'non déterminée'}`,
                         `Panneau actif : ${panel.active?'oui':'non'}`,
                         `Demande en cours : ${panel.requested?'oui':'non'}`,
                         `État : ${panel.message||'aucune demande en cours'}`,
@@ -328,7 +331,10 @@
                         `Service musical connecté : ${data.musicListenerConnected?'oui':'non'}`,
                         `Tuya / Smart Life installé : ${data.tuyaInstalled?'oui':'non'}`,
                         `Internet : ${data.online?'disponible':'non vérifié'}`
-                    ].join('\n');break;
+                    ];
+                    if(typeof data.exitSummary==='string'&&data.exitSummary.trim())diagnosticLines.push('',data.exitSummary);
+                    if(typeof data.diagnosticReport==='string'&&data.diagnosticReport.trim())diagnosticLines.push('','Rapport local :',data.diagnosticReport);
+                    $('diagnostics').textContent=diagnosticLines.join('\n');break;
             }
         }
     };

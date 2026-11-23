@@ -48,6 +48,7 @@ public final class SplitScreenService extends AccessibilityService {
     private static final String PANEL = "fr.roaddeck.launcher.SidePanelActivity";
     private static final String PANEL_SETTINGS = "fr.roaddeck.launcher.PanelSettingsActivity";
     private static final String ENABLE_MESSAGE = "Activez RoadDeck dans les services d’accessibilité Android.";
+    private static final String SPLIT_UNAVAILABLE_MESSAGE = "La commande d’écran partagé n’est pas disponible actuellement pour RoadDeck.";
     private static volatile SplitScreenService instance;
     private static volatile String lastState = "{}";
 
@@ -69,6 +70,7 @@ public final class SplitScreenService extends AccessibilityService {
     private boolean waitCondition;
     private String waitReason = "idle";
     private String message = "Prêt à ouvrir Waze à gauche et RoadDeck à droite.";
+    private String splitActionAvailability = "unknown";
     private String failureStage = "";
     private Observation latest = new Observation();
     private WindowManager windowManager;
@@ -109,6 +111,7 @@ public final class SplitScreenService extends AccessibilityService {
             service.publish();
             return false;
         }
+        service.refreshSplitActionAvailability();
         return service.startPair((Activity) context);
     }
 
@@ -151,14 +154,16 @@ public final class SplitScreenService extends AccessibilityService {
             out.put("accessibilityGranted", connected || accessibilityEnabled(context));
             out.put("serviceConnected", connected);
             if (!connected) {
+                out.put("splitActionAvailability", "unknown");
                 out.put("active", false);
                 out.put("requested", false);
                 out.put("message", accessibilityEnabled(context)
-                        ? "Service RoadDeck activé mais pas encore connecté. Revenez dans RoadDeck."
+                        ? "Autorisation accordée, mais service RoadDeck non connecté. Consultez le diagnostic dans Informations."
                         : ENABLE_MESSAGE);
             }
             if (!out.has("active")) out.put("active", false);
             if (!out.has("requested")) out.put("requested", false);
+            if (!out.has("splitActionAvailability")) out.put("splitActionAvailability", "unknown");
         } catch (JSONException ignored) { }
         return out;
     }
@@ -209,7 +214,44 @@ public final class SplitScreenService extends AccessibilityService {
         // Fresh process/service means an idle controller. No stored auto-start or auto-toggles.
         phase = Phase.IDLE;
         active = false;
+        refreshSplitActionAvailability();
         publish();
+    }
+
+    @Override public void onSystemActionsChanged() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            super.onSystemActionsChanged();
+            refreshSplitActionAvailability();
+            publish();
+        }
+    }
+
+    /** API 29 has no public action-list query; preserve its verified launch path. */
+    private void refreshSplitActionAvailability() {
+        splitActionAvailability = "unknown";
+        if (Build.VERSION.SDK_INT < 30 || instance != this) return;
+        try {
+            List<AccessibilityNodeInfo.AccessibilityAction> actions = getSystemActions();
+            if (actions == null) {
+                Log.w(TAG, "Split action availability unknown: system action list is null");
+                return;
+            }
+            boolean unreadableEntry = false;
+            for (AccessibilityNodeInfo.AccessibilityAction action : actions) {
+                if (action == null) {
+                    unreadableEntry = true;
+                    continue;
+                }
+                if (action.getId() == GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN) {
+                    splitActionAvailability = "available";
+                    return;
+                }
+            }
+            if (!unreadableEntry) splitActionAvailability = "unavailable";
+        } catch (RuntimeException error) {
+            // An unavailable query does not prove the action itself is absent.
+            Log.w(TAG, "Cannot determine split action availability", error);
+        }
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -255,6 +297,7 @@ public final class SplitScreenService extends AccessibilityService {
         // check skips all queries belonging to this disconnected service.
         if (ownerReader != null) ownerReader.shutdown();
         if (instance == this) instance = null;
+        splitActionAvailability = "unknown";
         active = false;
         phase = Phase.IDLE;
         message = "Service RoadDeck déconnecté.";
@@ -263,7 +306,7 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private boolean startPair(Activity activity) {
-        if (pending()) return true;
+        if (pending() && !"unavailable".equals(splitActionAvailability)) return true;
         failureStage = "";
         failureElapsedMs = 0;
         requestStartedAt = SystemClock.uptimeMillis();
@@ -278,6 +321,10 @@ public final class SplitScreenService extends AccessibilityService {
             publish();
             enqueue(900);
             return true;
+        }
+        if ("unavailable".equals(splitActionAvailability)) {
+            fail(SPLIT_UNAVAILABLE_MESSAGE);
+            return false;
         }
         if (latest.screenWidth < latest.screenHeight) {
             fail("Placez l’écran en paysage pour afficher Waze à gauche.");
@@ -861,6 +908,8 @@ public final class SplitScreenService extends AccessibilityService {
         try {
             JSONObject out = new JSONObject().put("mode", "split").put("active", active)
                     .put("requested", pending()).put("accessibilityGranted", instance == this)
+                    .put("serviceConnected", instance == this)
+                    .put("splitActionAvailability", splitActionAvailability)
                     .put("message", message).put("state", phase.name())
                     .put("failureStage", failureStage).put("dividerObserved", latest.divider)
                     .put("screenWidth", latest.screenWidth).put("screenHeight", latest.screenHeight)

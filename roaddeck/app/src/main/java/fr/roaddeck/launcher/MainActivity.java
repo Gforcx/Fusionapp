@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     private final RadioDirectory directory=new RadioDirectory();
     private final Handler main=new Handler(Looper.getMainLooper());
     private final ExecutorService io=Executors.newFixedThreadPool(3);
-    private final AtomicBoolean weatherBusy=new AtomicBoolean(),gateBusy=new AtomicBoolean();
+    private final AtomicBoolean weatherBusy=new AtomicBoolean(),gateBusy=new AtomicBoolean(),diagnosticBusy=new AtomicBoolean();
     private boolean ready,visible,gateDialog;
     private long nextWeatherAttempt,lastGateAt;
     private String lastState="";
@@ -150,6 +150,7 @@ public class MainActivity extends Activity {
             case "wifiSettings": startActivity(new Intent(Settings.ACTION_WIFI_SETTINGS));break;
             case "bluetoothSettings": startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
             case "diagnostics": emit("diagnostics",diagnostics());break;
+            case "copyDiagnostics": copyDiagnostics();break;
             case "apps": listApps(d.optString("purpose","open"));break;
             case "openApp": launchPackage(d.optString("package"));break;
             case "openMusic": if(RadioService.instance!=null)RadioService.instance.pause();launchPackage(config.string("musicPackage","com.spotify.music"));break;
@@ -204,10 +205,21 @@ public class MainActivity extends Activity {
     }
     private void requestSplitSetup(){
         stopService(new Intent(this,OverlayService.class));
-        if(SplitScreenService.isConnected()){toast("L’assistant écran partagé est activé. Appuyez sur Ouvrir Waze.");return;}
-        new AlertDialog.Builder(this).setTitle("Waze et RoadDeck côte à côte")
-            .setMessage("Activez l’assistant RoadDeck dans les réglages d’accessibilité. Il demande à Android de redimensionner les deux fenêtres. RoadDeck ne lit pas vos messages ni le contenu des pages. Le mode écran partagé doit être disponible sur cet autoradio.")
+        JSONObject state=overlaySnapshot();
+        if(state.optBoolean("serviceConnected",SplitScreenService.isConnected())){
+            if("unavailable".equals(state.optString("splitActionAvailability")))
+                toast("Le service RoadDeck est connecté, mais Android ne lui propose pas actuellement la commande d’écran partagé.");
+            else toast("Le service RoadDeck est connecté. Appuyez sur Ouvrir Waze.");
+            return;
+        }
+        boolean granted=state.optBoolean("accessibilityGranted");
+        String explanation=granted
+            ? "L’autorisation d’accessibilité est déjà enregistrée, mais le service RoadDeck n’est pas connecté à Android. La cause n’est pas déterminée.\n\nDans les réglages d’accessibilité, désactivez puis réactivez RoadDeck et revenez ici pour vérifier la connexion. Si le problème continue, ouvrez Informations et copiez le rapport de diagnostic."
+            : "Activez l’assistant RoadDeck dans les réglages d’accessibilité. Il demande à Android de redimensionner les deux fenêtres. RoadDeck ne lit pas vos messages ni le contenu des pages. Le mode écran partagé doit être disponible sur cet appareil.";
+        new AlertDialog.Builder(this).setTitle(granted?"Service autorisé mais déconnecté":"Waze et RoadDeck côte à côte")
+            .setMessage(explanation)
             .setNegativeButton("Annuler",null)
+            .setNeutralButton("Informations",(dialog,which)->{pendingPage="about";if(ready)showPendingPage();})
             .setPositiveButton("Ouvrir les réglages",(dialog,which)->{
                 try{startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));}
                 catch(ActivityNotFoundException error){toast("Ouvrez les réglages Android → Accessibilité → RoadDeck.");}
@@ -218,7 +230,9 @@ public class MainActivity extends Activity {
         if(!visible)throw new Exception("Revenez dans RoadDeck pour lancer Waze et le panneau.");
         if(!installed("com.waze"))throw new Exception("Installez et ouvrez Waze une première fois avant de lancer l’écran partagé.");
         if(!SplitScreenService.isConnected()){
-            if(data.optBoolean("automatic",false))toast("Activez d’abord l’assistant écran partagé dans Réglages → Waze.");
+            if(data.optBoolean("automatic",false))toast(overlaySnapshot().optBoolean("accessibilityGranted")
+                ?"RoadDeck est autorisé mais son service n’est pas connecté. Consultez Réglages → Waze ou copiez le diagnostic dans Informations."
+                :"Activez d’abord l’assistant écran partagé dans Réglages → Waze.");
             else requestSplitSetup();
             return;
         }
@@ -257,11 +271,34 @@ public class MainActivity extends Activity {
         return c!=null&&c.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)&&c.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
     private JSONObject diagnostics(){
+        JSONObject panel=overlaySnapshot();
         return obj("android",Build.VERSION.RELEASE,"sdk",Build.VERSION.SDK_INT,"device",Build.MANUFACTURER+" "+Build.MODEL,
             "width",getResources().getDisplayMetrics().widthPixels,"height",getResources().getDisplayMetrics().heightPixels,
-            "wazeInstalled",installed("com.waze"),"wazePanel",overlaySnapshot(),"accessibilityGranted",SplitScreenService.isConnected(),"multiWindow",isInMultiWindowMode(),
+            "wazeInstalled",installed("com.waze"),"wazePanel",panel,"accessibilityGranted",panel.optBoolean("accessibilityGranted"),
+            "accessibilityConnected",panel.optBoolean("serviceConnected",SplitScreenService.isConnected()),"diagnosticReportAvailable",true,"multiWindow",isInMultiWindowMode(),
             "musicAccess",music.authorized(),"musicListenerConnected",MediaAccessService.connected,
             "tuyaInstalled",installed("com.tuya.smart")||installed("com.tuya.smartlife"),"online",online());
+    }
+    private void copyDiagnostics(){
+        if(!visible||isFinishing()||isDestroyed()||!diagnosticBusy.compareAndSet(false,true))return;
+        JSONObject screen=diagnostics();
+        toast("Préparation du rapport local…");
+        io.execute(()->{
+            try{
+                String report=Diagnostics.report(getApplicationContext(),screen);
+                main.post(()->{
+                    try{
+                        if(!visible||isFinishing()||isDestroyed())return;
+                        ClipboardManager clipboard=getSystemService(ClipboardManager.class);
+                        if(clipboard==null)throw new IllegalStateException("Presse-papiers indisponible");
+                        clipboard.setPrimaryClip(ClipData.newPlainText("Diagnostic RoadDeck",report));
+                        JSONObject updated=diagnostics();updated.put("diagnosticReport",report);
+                        emit("diagnostics",updated);toast("Rapport copié. Vous pouvez le coller dans votre message.");
+                    }catch(Exception error){error(error);}
+                    finally{diagnosticBusy.set(false);}
+                });
+            }catch(Exception error){diagnosticBusy.set(false);error(error);}
+        });
     }
     private void refreshWeather(boolean force){
         if(!ready||weatherBusy.get()||(!force&&System.currentTimeMillis()<nextWeatherAttempt))return;
