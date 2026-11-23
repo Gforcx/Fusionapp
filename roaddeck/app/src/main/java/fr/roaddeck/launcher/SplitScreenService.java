@@ -10,10 +10,13 @@ import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.util.Log;
+import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -21,7 +24,12 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.Toast;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -35,6 +43,7 @@ import org.json.JSONObject;
  * accessibilityFeedbackType=feedbackGeneric. No gesture capability is required.
  */
 public final class SplitScreenService extends AccessibilityService {
+    private static final String TAG = "RoadDeckSplit";
     private static final String WAZE = "com.waze";
     private static final String PANEL = "fr.roaddeck.launcher.SidePanelActivity";
     private static final String PANEL_SETTINGS = "fr.roaddeck.launcher.PanelSettingsActivity";
@@ -53,13 +62,27 @@ public final class SplitScreenService extends AccessibilityService {
     private boolean panelVisible, panelMultiWindow, active, swapUsed;
     private boolean scanQueued;
     private long scanAt, deadline, overallDeadline, lastGoodPairAt;
+    private long phaseStartedAt, requestStartedAt, failureElapsedMs, lastWaitLogAt;
+    private long lastRootMs, maximumRootMs, lastToggleMs;
+    private int rootQueryCount, phaseSamples;
     private int stableCount, stableSignature;
+    private boolean waitCondition;
+    private String waitReason = "idle";
     private String message = "Prêt à ouvrir Waze à gauche et RoadDeck à droite.";
     private String failureStage = "";
     private Observation latest = new Observation();
     private WindowManager windowManager;
     private View seam;
     private SplitGeometry.Box seamBounds;
+    // Window identities are cached separately from geometry. Rectangles always come
+    // from the current getWindows() result; no old rectangle is ever reused.
+    private final SparseArray<String> windowPackages = new SparseArray<>();
+    private final SparseArray<Long> ownerRequests = new SparseArray<>();
+    private final SparseArray<Long> ownerRetryAt = new SparseArray<>();
+    private final Set<Integer> liveWindowIds = new HashSet<>();
+    private volatile long ownerGeneration;
+    private long nextOwnerRequest;
+    private ExecutorService ownerReader;
 
     private final Runnable scan = new Runnable() {
         @Override public void run() {
@@ -171,6 +194,9 @@ public final class SplitScreenService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        clearWindowOwners();
+        if (ownerReader == null || ownerReader.isShutdown())
+            ownerReader = Executors.newSingleThreadExecutor(task -> new Thread(task, "RoadDeckWindowOwner"));
         AccessibilityServiceInfo info = getServiceInfo();
         if (info != null) {
             info.flags |= AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
@@ -187,7 +213,19 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event == null || (!pending() && phase != Phase.RUNNING)) return;
+        if (event == null) return;
+        int windowId = event.getWindowId();
+        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                && windowId >= 0 && event.getPackageName() != null) {
+            // Keep ownership events even while idle, before the user starts a pair.
+            windowPackages.put(windowId, event.getPackageName().toString());
+            ownerRetryAt.remove(windowId);
+        } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+                && Build.VERSION.SDK_INT >= 28
+                && (event.getWindowChanges() & AccessibilityEvent.WINDOWS_CHANGE_REMOVED) != 0) {
+            forgetWindow(windowId);
+        }
+        if (!pending() && phase != Phase.RUNNING) return;
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOWS_CHANGED
                 || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // The old gap is no longer authoritative as soon as the windows change.
@@ -212,6 +250,10 @@ public final class SplitScreenService extends AccessibilityService {
     @Override public void onDestroy() {
         cancelScans();
         removeSeam();
+        clearWindowOwners();
+        // Queued copies still run their finally/recycle path; the generation
+        // check skips all queries belonging to this disconnected service.
+        if (ownerReader != null) ownerReader.shutdown();
         if (instance == this) instance = null;
         active = false;
         phase = Phase.IDLE;
@@ -223,6 +265,9 @@ public final class SplitScreenService extends AccessibilityService {
     private boolean startPair(Activity activity) {
         if (pending()) return true;
         failureStage = "";
+        failureElapsedMs = 0;
+        requestStartedAt = SystemClock.uptimeMillis();
+        phaseStartedAt = requestStartedAt;
         latest = observe();
         if (confirmedPair(latest)) {
             phase = Phase.RUNNING;
@@ -264,6 +309,9 @@ public final class SplitScreenService extends AccessibilityService {
 
     private void startClose() {
         failureStage = "";
+        failureElapsedMs = 0;
+        requestStartedAt = SystemClock.uptimeMillis();
+        phaseStartedAt = requestStartedAt;
         cancelScans();
         removeSeam();
         active = false;
@@ -284,20 +332,12 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private void drive() {
+        Phase observedPhase = phase;
         latest = observe();
         long now = SystemClock.uptimeMillis();
+        phaseSamples++;
         if (pending() && latest.screenWidth > 0 && latest.screenWidth < latest.screenHeight) {
             fail("L’écran doit rester en paysage pour afficher Waze à gauche.");
-            return;
-        }
-        if (pending() && (now > deadline || now > overallDeadline)) {
-            String error;
-            if (phase == Phase.WAIT_WAZE)
-                error = "Waze ne s’est pas affiché au premier plan. Revenez dans RoadDeck pour réessayer.";
-            else if (phase == Phase.CLOSE_WAIT_SPLIT || phase == Phase.CLOSE_WAIT_WAZE)
-                error = "L’autoradio n’a pas confirmé le retour de Waze en plein écran.";
-            else error = "L’autoradio n’a pas confirmé Waze à gauche en écran partagé. Aucun panneau ne recouvre sa carte.";
-            fail(error);
             return;
         }
         switch (phase) {
@@ -307,7 +347,7 @@ public final class SplitScreenService extends AccessibilityService {
                         enter(Phase.WAIT_CLEAR_EXISTING, 6500, "Préparation de l’écran partagé…");
                         toggleKnownSplit();
                     } else if (SplitGeometry.fullWidth(latest.waze, latest.screenWidth, latest.screenHeight)) {
-                        enter(Phase.WAIT_DOCK_WAZE, 7000, "Redimensionnement de Waze…");
+                        enter(Phase.WAIT_DOCK_WAZE, 18000, "Redimensionnement de Waze…");
                         toggleForFocused(WAZE);
                     }
                 }
@@ -315,7 +355,7 @@ public final class SplitScreenService extends AccessibilityService {
             case WAIT_CLEAR_EXISTING:
                 if (stable(!latest.divider && latest.wazeFocused
                         && SplitGeometry.fullWidth(latest.waze, latest.screenWidth, latest.screenHeight), latest)) {
-                    enter(Phase.WAIT_DOCK_WAZE, 7000, "Redimensionnement de Waze…");
+                    enter(Phase.WAIT_DOCK_WAZE, 18000, "Redimensionnement de Waze…");
                     toggleForFocused(WAZE);
                 }
                 break;
@@ -341,7 +381,7 @@ public final class SplitScreenService extends AccessibilityService {
             case WAIT_PANEL_FULL:
                 if (stable(!latest.divider && panelVisible && latest.panelFocused
                         && SplitGeometry.fullWidth(latest.panel, latest.screenWidth, latest.screenHeight), latest)) {
-                    enter(Phase.WAIT_DOCK_PANEL, 6500, "Positionnement du panneau droit…");
+                    enter(Phase.WAIT_DOCK_PANEL, 18000, "Positionnement du panneau droit…");
                     toggleForFocused(getPackageName());
                 }
                 break;
@@ -358,6 +398,7 @@ public final class SplitScreenService extends AccessibilityService {
                 break;
             case WAIT_PAIR:
                 if (stable(confirmedPair(latest), latest)) {
+                    Log.i(TAG, "verified pair " + diagnosticLine());
                     phase = Phase.RUNNING;
                     active = true;
                     lastGoodPairAt = now;
@@ -384,6 +425,7 @@ public final class SplitScreenService extends AccessibilityService {
             case CLOSE_WAIT_WAZE:
                 if (stable(!latest.divider && latest.wazeFocused
                         && SplitGeometry.fullWidth(latest.waze, latest.screenWidth, latest.screenHeight), latest)) {
+                    Log.i(TAG, "verified fullscreen " + diagnosticLine());
                     phase = Phase.IDLE;
                     message = "Panneau fermé. Waze est affiché en plein écran.";
                 }
@@ -391,6 +433,25 @@ public final class SplitScreenService extends AccessibilityService {
             default:
                 removeSeam();
                 break;
+        }
+        // A delayed main-thread callback must first assess the actual resulting
+        // windows. Do not discard an already confirmed transition solely because
+        // its callback was delivered just after the phase deadline.
+        now = SystemClock.uptimeMillis();
+        if (pending() && (now > overallDeadline || (phase == observedPhase && now > deadline))) {
+            Log.w(TAG, "timeout " + diagnosticLine() + " overallExpired=" + (now > overallDeadline));
+            String error;
+            if (phase == Phase.WAIT_WAZE)
+                error = "Waze ne s’est pas affiché au premier plan. Revenez dans RoadDeck pour réessayer.";
+            else if (phase == Phase.CLOSE_WAIT_SPLIT || phase == Phase.CLOSE_WAIT_WAZE)
+                error = "L’autoradio n’a pas confirmé le retour de Waze en plein écran.";
+            else error = "L’autoradio n’a pas confirmé Waze à gauche en écran partagé. Aucun panneau ne recouvre sa carte.";
+            fail(error);
+            return;
+        }
+        if (pending() && now - lastWaitLogAt >= 1000) {
+            lastWaitLogAt = now;
+            Log.i(TAG, "wait " + diagnosticLine());
         }
         publish();
     }
@@ -410,19 +471,46 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private boolean stable(boolean condition, Observation observation) {
+        waitCondition = condition;
+        waitReason = waitDescription(observation);
         if (!condition) { stableCount = 0; return false; }
-        int signature = observation.signature();
+        int signature;
+        switch (phase) {
+            case WAIT_WAZE:
+            case WAIT_CLEAR_EXISTING:
+            case WAIT_DOCK_WAZE:
+            case CLOSE_WAIT_WAZE:
+                signature = observation.signature(observation.waze);
+                break;
+            case WAIT_PANEL_FULL:
+            case WAIT_DOCK_PANEL:
+                signature = observation.signature(observation.panel);
+                break;
+            case WAIT_CLEAR_FOR_SWAP:
+            case CLOSE_WAIT_SPLIT:
+                signature = observation.divider ? 1 : 0;
+                break;
+            default:
+                signature = observation.signature();
+        }
         if (signature == stableSignature) stableCount++;
         else { stableSignature = signature; stableCount = 1; }
         return stableCount >= 2;
     }
 
     private void enter(Phase next, long timeoutMs, String text) {
+        Phase previous = phase;
         phase = next;
+        phaseStartedAt = SystemClock.uptimeMillis();
+        phaseSamples = 0;
+        waitCondition = false;
+        waitReason = "awaiting first observation";
         stableCount = 0;
         stableSignature = 0;
-        deadline = SystemClock.uptimeMillis() + timeoutMs;
+        deadline = phaseStartedAt + timeoutMs;
         message = text;
+        Log.i(TAG, "phase " + previous + " -> " + next + " requestMs="
+                + (phaseStartedAt - requestStartedAt) + " timeoutMs=" + timeoutMs);
         publish();
     }
 
@@ -511,9 +599,16 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private boolean sendToggle() {
+        long startedAt = SystemClock.uptimeMillis();
+        boolean accepted = false;
         try {
-            if (performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN)) return true;
-        } catch (RuntimeException ignored) { }
+            accepted = performGlobalAction(GLOBAL_ACTION_TOGGLE_SPLIT_SCREEN);
+        } catch (RuntimeException ignored) {
+        } finally {
+            lastToggleMs = SystemClock.uptimeMillis() - startedAt;
+            Log.i(TAG, "toggle phase=" + phase + " accepted=" + accepted + " durationMs=" + lastToggleMs);
+        }
+        if (accepted) return true;
         fail("L’autoradio refuse la commande d’écran partagé.");
         return false;
     }
@@ -522,6 +617,8 @@ public final class SplitScreenService extends AccessibilityService {
         cancelScans();
         removeSeam();
         failureStage = phase.name();
+        failureElapsedMs = Math.max(0, SystemClock.uptimeMillis() - phaseStartedAt);
+        Log.w(TAG, "failure " + diagnosticLine());
         phase = Phase.FAILED;
         active = false;
         message = text;
@@ -531,15 +628,19 @@ public final class SplitScreenService extends AccessibilityService {
 
     private Observation observe() {
         Observation observation = new Observation();
+        long startedAt = SystemClock.uptimeMillis();
         try {
             Point size = new Point();
             if (windowManager != null) windowManager.getDefaultDisplay().getRealSize(size);
             observation.screenWidth = size.x;
             observation.screenHeight = size.y;
+            long windowsStartedAt = SystemClock.uptimeMillis();
             List<AccessibilityWindowInfo> windows = getWindows();
+            observation.getWindowsMs = SystemClock.uptimeMillis() - windowsStartedAt;
+            Set<Integer> seenIds = new HashSet<>();
             for (AccessibilityWindowInfo window : windows) {
-                AccessibilityNodeInfo root = null;
                 try {
+                    seenIds.add(window.getId());
                     if (window.getType() == AccessibilityWindowInfo.TYPE_SPLIT_SCREEN_DIVIDER) {
                         observation.divider = true;
                         continue;
@@ -550,29 +651,148 @@ public final class SplitScreenService extends AccessibilityService {
                     window.getBoundsInScreen(rect);
                     SplitGeometry.Box box = new SplitGeometry.Box(rect.left, rect.top, rect.right, rect.bottom);
                     if (!SplitGeometry.inside(box, size.x, size.y)) continue;
-                    root = window.getRoot();
-                    CharSequence packageName = root == null ? null : root.getPackageName();
-                    if (packageName == null) continue;
-                    if (WAZE.contentEquals(packageName)
+                    String packageName = windowPackages.get(window.getId());
+                    if (packageName == null) {
+                        observation.unknownOwners++;
+                        requestWindowOwner(window);
+                        continue;
+                    }
+                    if (WAZE.equals(packageName)
                             && (observation.waze == null || box.area() > observation.waze.area())) {
                         observation.waze = box;
                         observation.wazeFocused = window.isFocused();
-                    } else if (getPackageName().contentEquals(packageName)
+                    } else if (getPackageName().equals(packageName)
                             && (observation.panel == null || box.area() > observation.panel.area())) {
                         observation.panel = box;
                         observation.panelFocused = window.isFocused();
                     }
                 } catch (RuntimeException ignored) {
-                    // Windows can disappear between getWindows() and getRoot(). Retry on the next event.
+                    // Windows can disappear between listing and copying. Retry on the next event.
                 } finally {
-                    if (root != null) root.recycle();
                     window.recycle();
                 }
             }
+            liveWindowIds.clear();
+            liveWindowIds.addAll(seenIds);
+            for (int index = windowPackages.size() - 1; index >= 0; index--)
+                if (!seenIds.contains(windowPackages.keyAt(index))) windowPackages.removeAt(index);
+            for (int index = ownerRequests.size() - 1; index >= 0; index--)
+                if (!seenIds.contains(ownerRequests.keyAt(index))) ownerRequests.removeAt(index);
+            for (int index = ownerRetryAt.size() - 1; index >= 0; index--)
+                if (!seenIds.contains(ownerRetryAt.keyAt(index))) ownerRetryAt.removeAt(index);
         } catch (RuntimeException ignored) {
             // An unreadable layout never permits a mask or a successful state.
+        } finally {
+            observation.durationMs = SystemClock.uptimeMillis() - startedAt;
+            if (observation.durationMs >= 250)
+                Log.w(TAG, "slow scan phase=" + phase + " durationMs=" + observation.durationMs
+                        + " getWindowsMs=" + observation.getWindowsMs);
         }
         return observation;
+    }
+
+    private void requestWindowOwner(AccessibilityWindowInfo window) {
+        final int windowId = window.getId();
+        Long retryAt = ownerRetryAt.get(windowId);
+        if (ownerRequests.get(windowId) != null || ownerReader == null || ownerReader.isShutdown()
+                || (retryAt != null && retryAt > SystemClock.uptimeMillis())) return;
+        final long generation = ownerGeneration;
+        final long token = ++nextOwnerRequest;
+        final AccessibilityWindowInfo copy = AccessibilityWindowInfo.obtain(window);
+        ownerRequests.put(windowId, token);
+        try {
+            ownerReader.execute(() -> {
+                AccessibilityNodeInfo root = null;
+                String owner = null;
+                long startedAt = SystemClock.uptimeMillis();
+                try {
+                    // getRoot may wait for another app for several seconds. Never
+                    // do that on the UI thread or wait for this worker from it.
+                    if (generation == ownerGeneration && !Thread.currentThread().isInterrupted()) {
+                        root = copy.getRoot();
+                        CharSequence packageName = root == null ? null : root.getPackageName();
+                        if (packageName != null) owner = packageName.toString();
+                    }
+                } catch (RuntimeException ignored) {
+                } finally {
+                    if (root != null) root.recycle();
+                    copy.recycle();
+                }
+                final String resolvedOwner = owner;
+                final long durationMs = SystemClock.uptimeMillis() - startedAt;
+                handler.post(() -> {
+                    if (instance != this || generation != ownerGeneration) return;
+                    Long pendingToken = ownerRequests.get(windowId);
+                    if (pendingToken == null || pendingToken.longValue() != token) return;
+                    ownerRequests.remove(windowId);
+                    rootQueryCount++;
+                    lastRootMs = durationMs;
+                    maximumRootMs = Math.max(maximumRootMs, durationMs);
+                    if (liveWindowIds.contains(windowId)) {
+                        if (resolvedOwner != null && windowPackages.get(windowId) == null)
+                            windowPackages.put(windowId, resolvedOwner);
+                        else if (resolvedOwner == null)
+                            ownerRetryAt.put(windowId, SystemClock.uptimeMillis() + 1500);
+                    }
+                    Log.i(TAG, "owner query window=" + windowId + " durationMs=" + durationMs
+                            + " resolved=" + (resolvedOwner != null) + " pending=" + ownerRequests.size());
+                    if (pending() || phase == Phase.RUNNING) enqueue(0);
+                });
+            });
+        } catch (RejectedExecutionException error) {
+            ownerRequests.remove(windowId);
+            copy.recycle();
+        }
+    }
+
+    private void forgetWindow(int windowId) {
+        windowPackages.remove(windowId);
+        ownerRequests.remove(windowId);
+        ownerRetryAt.remove(windowId);
+        liveWindowIds.remove(windowId);
+    }
+
+    private void clearWindowOwners() {
+        ownerGeneration++;
+        windowPackages.clear();
+        ownerRequests.clear();
+        ownerRetryAt.clear();
+        liveWindowIds.clear();
+    }
+
+    private String waitDescription(Observation observation) {
+        switch (phase) {
+            case WAIT_DOCK_WAZE:
+                if (!observation.divider) return "divider absent";
+                if (observation.waze == null) return "Waze window owner unresolved or absent";
+                if (!SplitGeometry.dockTransition(observation.waze, observation.screenWidth, observation.screenHeight))
+                    return "Waze bounds not docked";
+                return "confirming repeated Waze bounds";
+            case WAIT_DOCK_PANEL:
+                if (!observation.divider) return "divider absent";
+                if (!panelVisible) return "panel lifecycle not visible";
+                if (observation.panel == null) return "panel window owner unresolved or absent";
+                if (!SplitGeometry.dockTransition(observation.panel, observation.screenWidth, observation.screenHeight))
+                    return "panel bounds not docked";
+                return "confirming repeated panel bounds";
+            case WAIT_PAIR:
+                if (!observation.divider) return "divider absent";
+                if (!panelVisible || !panelMultiWindow) return "panel lifecycle not in multiwindow";
+                if (measuredPair(observation).arrangement != SplitGeometry.WAZE_LEFT)
+                    return "complete Waze-left pair not measured";
+                return "confirming complete pair";
+            default:
+                return "divider=" + observation.divider + ", WazeFocused=" + observation.wazeFocused
+                        + ", panelFocused=" + observation.panelFocused + ", panelVisible=" + panelVisible;
+        }
+    }
+
+    private String diagnosticLine() {
+        return "phase=" + phase + " elapsedMs=" + Math.max(0, SystemClock.uptimeMillis() - phaseStartedAt)
+                + " samples=" + phaseSamples + " condition=" + waitCondition + " stable=" + stableCount
+                + " reason=" + waitReason + " scanMs=" + latest.durationMs
+                + " getWindowsMs=" + latest.getWindowsMs + " ownersPending=" + ownerRequests.size()
+                + " unknownOwners=" + latest.unknownOwners + " lastRootMs=" + lastRootMs;
     }
 
     private void updateSeam(Observation observation) {
@@ -644,6 +864,14 @@ public final class SplitScreenService extends AccessibilityService {
                     .put("message", message).put("state", phase.name())
                     .put("failureStage", failureStage).put("dividerObserved", latest.divider)
                     .put("screenWidth", latest.screenWidth).put("screenHeight", latest.screenHeight)
+                    .put("phaseElapsedMs", phase == Phase.FAILED ? failureElapsedMs
+                            : Math.max(0, SystemClock.uptimeMillis() - phaseStartedAt))
+                    .put("phaseSamples", phaseSamples).put("waitCondition", waitCondition)
+                    .put("waitReason", waitReason).put("stableSamples", stableCount)
+                    .put("scanDurationMs", latest.durationMs).put("getWindowsDurationMs", latest.getWindowsMs)
+                    .put("ownerQueriesPending", ownerRequests.size()).put("unknownOwners", latest.unknownOwners)
+                    .put("ownerQueryCount", rootQueryCount).put("lastRootDurationMs", lastRootMs)
+                    .put("maximumRootDurationMs", maximumRootMs).put("lastToggleDurationMs", lastToggleMs)
                     .put("dividerCovered", seam != null && seam.getAlpha() > 0.99f);
             if (latest.waze != null) out.put("wazeBounds", boundsJson(latest.waze));
             if (latest.panel != null) out.put("panelBounds", boundsJson(latest.panel));
@@ -660,10 +888,20 @@ public final class SplitScreenService extends AccessibilityService {
         SplitGeometry.Box waze, panel;
         boolean divider, wazeFocused, panelFocused;
         int screenWidth, screenHeight;
+        int unknownOwners;
+        long durationMs, getWindowsMs;
+        int signature(SplitGeometry.Box box) {
+            int value = box == null ? 0 : box.hashCode();
+            value = 31 * value + (divider ? 1 : 0);
+            value = 31 * value + screenWidth;
+            return 31 * value + screenHeight;
+        }
         int signature() {
             int value = waze == null ? 0 : waze.hashCode();
             value = 31 * value + (panel == null ? 0 : panel.hashCode());
-            return 31 * value + (divider ? 1 : 0);
+            value = 31 * value + (divider ? 1 : 0);
+            value = 31 * value + screenWidth;
+            return 31 * value + screenHeight;
         }
     }
 }
