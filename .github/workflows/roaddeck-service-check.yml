@@ -38,7 +38,9 @@ jobs:
         run: gradle -ProaddeckFixtures=true :app:assembleRelease :app:assembleDebug :app:assembleDebugAndroidTest :fixture:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace
       - name: Check legacy UI and diagnostics
         working-directory: roaddeck
-        run: node tests/test_split_ui.cjs
+        run: |
+          node tests/test_split_ui.cjs
+          python3 tools/test_check_binding.py
       - name: Preserve unsigned release for private signing
         if: matrix.api == 29
         uses: actions/upload-artifact@v4

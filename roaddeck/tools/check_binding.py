@@ -22,6 +22,11 @@ COMPONENT = PACKAGE + "/" + PACKAGE + ".SplitScreenService"
 SHORT_COMPONENT = PACKAGE + "/.SplitScreenService"
 MAIN = PACKAGE + "/.MainActivity"
 TARGET = re.compile(re.escape(PACKAGE) + r"/(?:" + re.escape(PACKAGE) + r")?\.SplitScreenService(?=$|[\s},])")
+# AOSP AccessibilityManagerService.parseAccessibilityServiceInfos(): GET_SERVICES,
+# GET_META_DATA, MATCH_DISABLED_UNTIL_USED_COMPONENTS, and both direct-boot modes.
+# Instant apps are not enabled in this clean API 36 test image.
+ACCESSIBILITY_QUERY_FLAGS = 0x00000004 | 0x00000080 | 0x00008000 | 0x00080000 | 0x00040000
+SERVICE_INTERFACE = "android.accessibilityservice.AccessibilityService"
 
 
 def balanced(text: str, marker: str, opening="{", closing="}") -> str | None:
@@ -84,6 +89,54 @@ def package_stopped(text: str, user_id: str) -> bool | None:
     return value.group(1) == "true" if value else None
 
 
+def canonical_component(text: str) -> str | None:
+    match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_.]*)/(\.?[A-Za-z_$][A-Za-z0-9_.$]*)", text)
+    if not match:
+        return None
+    package, name = match.groups()
+    return package + "/" + (package + name if name.startswith(".") else name)
+
+
+def parse_service_components(text: str) -> dict:
+    """Strictly parse `cmd package query-services --components` output."""
+    components = set()
+    declared_count = None
+    recognized = True
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        component = canonical_component(line)
+        if component is not None:
+            components.add(component)
+            continue
+        heading = re.fullmatch(r"(\d+) services? found:?", line)
+        if heading:
+            if declared_count is not None:
+                recognized = False
+            declared_count = int(heading.group(1))
+        elif line == "No services found":
+            declared_count = 0
+        else:
+            recognized = False
+    if declared_count is not None and declared_count != len(components):
+        recognized = False
+    return {"formatRecognized": recognized, "components": sorted(components),
+            "count": len(components), "targetPresent": COMPONENT in components}
+
+
+def parse_installed_service_count(text: str, user_id: str) -> int | None:
+    """Read the specified user's A11y cache count, never a different user's."""
+    blocks = re.split(r"(?=^\s*User state\[)", text, flags=re.M)
+    matches = [block for block in blocks if re.match(r"\s*User state\[", block)
+               and re.search(r"\battributes:\s*\{\s*id=" + re.escape(user_id) + r"\s*[,}]", block)]
+    if len(matches) != 1:
+        return None
+    attributes = balanced(matches[0], "attributes:")
+    counts = re.findall(r"\binstalledServiceCount=(\d+)\b", attributes or "")
+    return int(counts[0]) if len(counts) == 1 else None
+
+
 class Check:
     def __init__(self, args):
         self.output = Path(args.output).resolve()
@@ -140,6 +193,50 @@ class Check:
         self.shell(["dumpsys", "activity", "services", PACKAGE], name + "-services.txt")
         self.shell(["dumpsys", "activity", "activities"], name + "-activities.txt")
         self.shell(["pidof", PACKAGE], name + "-pid.txt")
+
+    def await_catalogue(self, duration=20):
+        """Preparation barrier for our known API 36 emulator service catalogue.
+
+        PM enumeration precedes AccessibilityManager's asynchronous XML/cache
+        update after installation. Two matching samples prevent enabling RoadDeck
+        while that cache still omits it. Counts are NOT a universal OEM guarantee:
+        policy/XML rejection can make PM and AccessibilityManager lists differ.
+        A mismatch fails this precondition; it never causes retries of activation.
+        """
+        deadline = time.monotonic() + duration
+        samples = []
+        previous = None
+        consecutive = 0
+        while time.monotonic() + 0.1 < deadline:
+            name = f"catalogue-{len(samples):02d}"
+            pm_text, pm_code = self.shell(
+                ["cmd", "package", "query-services", "--components", "--query-flags",
+                 str(ACCESSIBILITY_QUERY_FLAGS), "--user", self.user_id, "-a", SERVICE_INTERFACE],
+                name + "-pm-services.txt", min(4, deadline - time.monotonic()))
+            remaining = deadline - time.monotonic()
+            if remaining > 0.1:
+                a11y_text, a11y_code = self.shell(["dumpsys", "accessibility"],
+                    name + "-accessibility.txt", min(4, remaining))
+            else:
+                a11y_text, a11y_code = "", 124
+            pm = parse_service_components(pm_text)
+            count = parse_installed_service_count(a11y_text, self.user_id)
+            concordant = (pm_code == a11y_code == 0 and pm["formatRecognized"]
+                          and pm["targetPresent"] and count == pm["count"])
+            signature = (tuple(pm["components"]), count) if concordant else None
+            consecutive = consecutive + 1 if signature is not None and signature == previous else (1 if concordant else 0)
+            previous = signature
+            samples.append({"seconds": round(time.monotonic() - self.started, 3),
+                            "pmReturncode": pm_code, "accessibilityReturncode": a11y_code,
+                            "packageManager": pm, "installedServiceCount": count,
+                            "concordant": concordant, "consecutiveMatchingSamples": consecutive})
+            if consecutive >= 2 and time.monotonic() <= deadline:
+                break
+            time.sleep(min(0.5, max(0, deadline - time.monotonic())))
+        return {"passed": consecutive >= 2 and time.monotonic() <= deadline,
+                "durationLimitSeconds": duration, "queryFlags": ACCESSIBILITY_QUERY_FLAGS,
+                "scope": "Known API 36 emulator catalogue; count agreement is not a universal OEM guarantee.",
+                "samples": samples, "last": samples[-1] if samples else {}}
 
     def sample(self, name, timeout=4):
         # Both commands share the caller's remaining polling budget.
@@ -247,6 +344,12 @@ class Check:
                 if install_code or not installed.startswith("package:"):
                     raise RuntimeError("RoadDeck APK is not installed or package query failed")
 
+                print("Preparation: waiting for the installed accessibility catalogue", flush=True)
+                self.result["cataloguePrecondition"] = self.await_catalogue()
+                if not self.result["cataloguePrecondition"]["passed"]:
+                    self.result["failureStage"] = "accessibility_catalogue_precondition"
+                    raise RuntimeError("Accessibility catalogue precondition failed within 20 seconds; no service activation attempted")
+
                 prior, prior_code = self.shell(["settings", "--user", "current", "get", "secure",
                                                "enabled_accessibility_services"], "enabled-before.txt")
                 if prior_code:
@@ -260,6 +363,20 @@ class Check:
                 _, global_code = self.shell(["settings", "--user", "current", "put", "secure",
                                              "accessibility_enabled", "1"], "enable-accessibility.txt")
                 self.result["activationCommandsSucceeded"] = enable_code == 0 and global_code == 0
+                # Evidence only: ACCESSIBILITY_ENABLED can be derived by Android
+                # while binding is pending. The following binding/PID checks remain
+                # authoritative. Never re-enable the service during the test.
+                enabled_after, enabled_after_code = self.shell(
+                    ["settings", "--user", "current", "get", "secure", "enabled_accessibility_services"],
+                    "enabled-after-activation.txt")
+                global_after, global_after_code = self.shell(
+                    ["settings", "--user", "current", "get", "secure", "accessibility_enabled"],
+                    "accessibility-enabled-after-activation.txt")
+                self.result["activationReadback"] = {
+                    "enabledServices": enabled_after.strip(), "enabledServicesReturncode": enabled_after_code,
+                    "targetPresent": COMPONENT in [canonical_component(part)
+                        for part in enabled_after.strip().split(":")],
+                    "accessibilityEnabled": global_after.strip(), "accessibilityEnabledReturncode": global_after_code}
 
                 print("Phase 1: binding without an Activity or WebView", flush=True)
                 phase1 = self.await_binding("phase1")
