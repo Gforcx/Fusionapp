@@ -180,6 +180,12 @@ public final class SplitScreenAndroid10Test {
                 snapshotRect("wazeBounds"));
         assertRectNear("Engine panel bounds must agree with Android windows", side,
                 snapshotRect("panelBounds"));
+        await("unified frame visibly attached", 10000, () -> snapshot().optBoolean("frameVisible"));
+        assertTrue("Unified frame is enabled by default", snapshot().optBoolean("frameEnabled"));
+        assertRectNear("Frame window follows the actual split pair", union(navigation, side),
+                snapshotRect("frameBounds"));
+        assertTrue("Decoration remains a thin edge, not a crop of the navigation viewport",
+                snapshot().optInt("frameMaxInsetPx", Integer.MAX_VALUE) <= 8);
         assertFourCorners(navigation, 0);
         for (int i = 0; i < CORNERS.length; i++) {
             corner(i).click();
@@ -190,6 +196,20 @@ public final class SplitScreenAndroid10Test {
         assertFourCorners(navigation, 1);
         assertTrue("Failed to save split screenshot", device.takeScreenshot(
                 new File(evidenceDirectory(), "split-android10.png")));
+
+        // Changing only the decoration must not relaunch, enlarge or shift either app.
+        setFrameEnabled(false);
+        await("unified frame disabled", 5000, () -> !snapshot().optBoolean("frameVisible")
+                && !snapshot().optBoolean("frameEnabled"));
+        assertTrue("Native pair remains active without decoration", snapshot().optBoolean("active"));
+        assertRectNear("Disabling the frame preserves navigation size", navigation,
+                awaitWindow(NAVIGATION, 5000));
+        assertTrue("Failed to save undecorated split screenshot", device.takeScreenshot(
+                new File(evidenceDirectory(), "split-frame-disabled.png")));
+        setFrameEnabled(true);
+        await("unified frame restored", 5000, () -> snapshot().optBoolean("frameVisible"));
+        assertRectNear("Restoring the frame preserves navigation size", navigation,
+                awaitWindow(NAVIGATION, 5000));
 
         tapPanelButton(panel, "settings", "Réglages");
         PanelSettingsActivity settings = awaitActivity(PanelSettingsActivity.class, 15000);
@@ -206,6 +226,8 @@ public final class SplitScreenAndroid10Test {
         assertRectNear("Opening settings must not enlarge or move the navigation window", navigation, settingsNavigation);
         assertSideBySide(settingsNavigation, awaitWindow(ROADDECK, 5000));
         assertFourCorners(settingsNavigation, 1);
+        await("frame remains available over compact settings", 5000,
+                () -> snapshot().optBoolean("frameVisible"));
         assertTrue("Failed to save settings screenshot", device.takeScreenshot(
                 new File(evidenceDirectory(), "split-settings.png")));
 
@@ -235,6 +257,8 @@ public final class SplitScreenAndroid10Test {
         assertTrue("The real navigation window must expand after closePair", fullScreen.width() > navigation.width() * 1.4);
         assertTrue("Navigation must occupy almost the full display width", fullScreen.width() >= device.getDisplayWidth() * 0.90);
         assertNull("The panel window must be gone", windowBounds(ROADDECK));
+        assertFalse("The frame must be removed after closing the pair", snapshot().optBoolean("frameVisible"));
+        assertFalse("The frame bounds must be removed with its window", snapshot().has("frameBounds"));
         assertFourCorners(fullScreen, 1);
         for (int i = 0; i < CORNERS.length; i++) {
             corner(i).click();
@@ -243,7 +267,25 @@ public final class SplitScreenAndroid10Test {
                     () -> (NAMES[index] + " : 2").equals(corner(index).getText()));
         }
         assertFourCorners(fullScreen, 2);
-        writeState("passed: fixture windows, corner clicks, settings task, fullscreen return");
+        writeState("passed: fixture windows, thin non-touchable frame, toggle without resize, corner clicks, settings task, fullscreen return");
+    }
+
+    private Rect union(Rect first, Rect second) {
+        Rect result = new Rect(first);
+        result.union(second);
+        return result;
+    }
+
+    private void setFrameEnabled(boolean enabled) {
+        clearAutomationNodeCache();
+        AtomicReference<Exception> failure = new AtomicReference<>();
+        instrumentation.runOnMainSync(() -> {
+            try {
+                new Config(context).save(new JSONObject().put("splitFrame", enabled));
+                SplitScreenService.settingsChanged();
+            } catch (Exception error) { failure.set(error); }
+        });
+        assertNull("Could not change the decoration setting", failure.get());
     }
 
     @After public void recordFinalState() { if (context != null) writeState("instrumentation finished"); }

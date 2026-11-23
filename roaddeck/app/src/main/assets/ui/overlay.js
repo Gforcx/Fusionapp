@@ -1,14 +1,15 @@
 'use strict';
 (() => {
     const $=id=>document.getElementById(id);
+    function setText(id,value){const node=$(id),text=String(value);if(node.textContent!==text)node.textContent=text;}
     function replaceContents(parent,child){
         while(parent.firstChild)parent.removeChild(parent.firstChild);
         if(child)parent.appendChild(child);
     }
-    const state={tab:'music',touched:false,music:{},radio:{},favorites:[],settings:{musicName:'Spotify',radioBuffer:15},weather:{},gateToken:'',timer:0,confirmTimer:0};
+    const state={tab:'music',touched:false,music:{},radio:{},favorites:[],settings:{musicName:'Spotify',radioBuffer:15,splitFrame:true},weather:{},gateToken:'',timer:0,confirmTimer:0};
     const send=(type,data={})=>{if(window.Native&&typeof window.Native.post==='function')window.Native.post(JSON.stringify({type,data}));};
     function toast(text,error=false){clearTimeout(state.timer);$('message').textContent=String(text||'');$('message').classList.toggle('error',error);$('message').hidden=false;state.timer=setTimeout(()=>$('message').hidden=true,6500);}
-    function clock(){const now=new Date();$('clock').textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});$('date').textContent=now.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});}
+    function clock(){const now=new Date();setText('clock',now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));setText('date',now.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}));}
     function duration(ms){const s=Math.floor(Math.max(0,Number(ms)||0)/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;}
     function tab(value,user=true){state.tab=value;if(user)state.touched=true;render();}
     function render(){
@@ -60,7 +61,7 @@
     window.RoadDeckOverlay={receive:message=>{
         const d=message.data||{};
         switch(message.type){
-            case 'settings':Object.assign(state.settings,d);render();weather();break;
+            case 'settings':Object.assign(state.settings,d);document.body.classList.toggle('unified-frame',state.settings.splitFrame!==false);render();weather();break;
             case 'state':state.music=d.music||{};state.radio=d.radio||{};if(state.radio.wanted&&!state.touched)state.tab='radio';render();break;
             case 'favorites':state.favorites=Array.isArray(d)?d:[];break;
             case 'weather':state.weather=d;weather();break;

@@ -1,4 +1,4 @@
-name: RoadDeck 0.5.1 Android 10 and 16 verification
+name: RoadDeck 0.5.2 shared frame verification
 
 on:
   push:

@@ -93,6 +93,7 @@ function load(filename, options = {}) {
         return nodes.get(id);
     };
     const document = {
+        body: get('body'),
         getElementById: get,
         createElement: tag => new Element(tag),
         querySelector: selector => get(selector),

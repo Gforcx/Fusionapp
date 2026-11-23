@@ -134,7 +134,7 @@ public class MainActivity extends Activity {
         final JSONObject data=d;
         switch(type){
             case "ready": ready=true;emit("settings",settingsForUi());emit("favorites",config.favorites());emit("weather",config.weather());emit("diagnostics",diagnostics());pushState();emit("wazeState",overlaySnapshot());main.postDelayed(this::showPendingPage,100);break;
-            case "saveSettings": config.save(d);applyScreenSettings();nextWeatherAttempt=0;emit("settings",config.publicSettings());emit("saved",obj("message","Réglages enregistrés sur cet appareil"));pushState();break;
+            case "saveSettings": config.save(d);SplitScreenService.settingsChanged();applyScreenSettings();nextWeatherAttempt=0;emit("settings",config.publicSettings());emit("saved",obj("message","Réglages enregistrés sur cet appareil"));pushState();break;
             case "openWaze": openWaze(d);break;
             case "permissions": musicPermissionHelp();break;
             case "appInfo": startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));break;

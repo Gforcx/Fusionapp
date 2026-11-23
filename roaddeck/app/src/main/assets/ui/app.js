@@ -13,7 +13,7 @@
     const panelSettings = /(?:^|[?&])panelSettings=1(?:&|$)/.test(window.location ? window.location.search : '');
     const state = {
         tab: 'music', touchedTab: false, overlay: '', section: 'general', pickerReturn: null,
-        settings: {musicPackage:'com.spotify.music',musicName:'Spotify',wazeMode:'split',wazeAuto:false,
+        settings: {musicPackage:'com.spotify.music',musicName:'Spotify',wazeMode:'split',wazeAuto:false,splitFrame:true,
             keepScreen:true,gateConfirm:true,radioBuffer:15,tuyaEndpoint:'https://openapi.tuyaeu.com',
             tuyaHome:'',tuyaScene:''},
         waze: {}, music: {}, radio: {}, favorites: [], weather: {}, radioRequest: 0, cityRequest: 0,

@@ -16,7 +16,8 @@ check(!html.includes('name="overlayWidth"'), 'No fake application-owned split pe
 check(html.includes('Activer l’assistant d’écran partagé'), 'Accessibility setup action is explained');
 check(html.includes('Android contrôle la séparation'), 'System-controlled divider is disclosed');
 check(!/par-dessus|sans bordure|mode overlay/.test(html), 'No obsolete overlay or borderless promise');
-check(html.includes('RoadDeck 0.5.1') && panelHtml.includes('RoadDeck 0.5.1'), 'Version labels agree');
+check(html.includes('RoadDeck 0.5.2') && panelHtml.includes('RoadDeck 0.5.2'), 'Version labels agree');
+check(html.includes('type="checkbox" name="splitFrame">Habillage commun'), 'Shared frame can be disabled from Waze settings');
 check(panelHtml.includes('‹ Waze en grand'), 'Sidebar collapse wording describes fullscreen navigation');
 check(css.includes('.panel-settings .two-cols{grid-template-columns:minmax(0,1fr)'), 'Compact settings form has one column');
 check(css.includes('.panel-settings>:not(.overlay):not(.toast){display:none!important}'), 'Compact mode hides the launcher background');
@@ -81,9 +82,18 @@ check(compact.get('diagnostics').textContent.includes('Commande d’écran parta
 rd.receive({type:'diagnostics',data:{accessibilityConnected:true,wazePanel:{splitActionAvailability:'unknown'}}});
 check(compact.get('diagnostics').textContent.includes('Commande d’écran partagé : non déterminée'), 'Unknown API29 availability remains unknown');
 
+const frameInput = compact.get('settingsForm').elements.splitFrame;
+frameInput.name = 'splitFrame';frameInput.type = 'checkbox';
+compact.get('settingsForm').querySelectorAll = selector => selector === '[name]' ? [frameInput] : [];
+rd.receive({type:'settings',data:{splitFrame:true}});
+check(frameInput.checked === true, 'Saved enabled frame appears checked in the settings form');
+rd.receive({type:'settings',data:{splitFrame:false}});
+check(frameInput.checked === false, 'Saved disabled frame appears unchecked in the settings form');
+
 const before = compact.calls.length;
 compact.clickAction('testWaze');
 check(compact.calls[before].type === 'saveSettings' && compact.calls[before].data.wazeMode === 'split', 'Launch saves split mode first');
+check(compact.calls[before].data.splitFrame === false, 'Disabled decoration is saved as a boolean without changing split mode');
 check(!Object.prototype.hasOwnProperty.call(compact.calls[before].data,'overlayWidth'), 'No invented split ratio sent to Android');
 check(!compact.calls.slice(before).some(c => c.type === 'closePanelSettings'), 'Activity stays visible until native split launch');
 compact.flushTimeouts();
@@ -93,6 +103,16 @@ check(!('left' in launch.data) && !('width' in launch.data), 'No screen crop rec
 check(!compact.calls.some(c => c.type === 'overlay' || c.type === 'wazeLayout'), 'Split UI sends no obsolete overlay geometry commands');
 
 const sidebar = load('overlay.js');
+const decorationCalls = sidebar.calls.length;
+sidebar.context.RoadDeckOverlay.receive({type:'settings',data:{}});
+check(sidebar.context.document.body.classList.contains('unified-frame'), 'Absent preference enables the default shared frame');
+sidebar.context.RoadDeckOverlay.receive({type:'settings',data:{splitFrame:false}});
+check(!sidebar.context.document.body.classList.contains('unified-frame'), 'Explicit false removes the frame from the side panel');
+sidebar.context.RoadDeckOverlay.receive({type:'settings',data:{musicName:'Deezer'}});
+check(!sidebar.context.document.body.classList.contains('unified-frame'), 'Unrelated partial settings preserve the disabled frame');
+sidebar.context.RoadDeckOverlay.receive({type:'settings',data:{splitFrame:true}});
+check(sidebar.context.document.body.classList.contains('unified-frame'), 'Explicit true restores the frame on the side panel');
+check(sidebar.calls.length === decorationCalls, 'Decoration changes send no native launch, scaling or cropping command');
 sidebar.clickAction('gate');
 check(sidebar.calls[sidebar.calls.length-1].type === 'gate', 'Gate still begins with native confirmation request');
 sidebar.context.RoadDeckOverlay.receive({type:'gateConfirm',data:{token:'one-use-test-token'}});

@@ -146,7 +146,7 @@ public final class SidePanelActivity extends Activity {
     }
     private void pushInitial(){
         emit("settings",obj("musicName",config.string("musicName","Spotify"),"radioBuffer",config.integer("radioBuffer",15),
-            "navigationMode","split","weatherCity",config.string("weatherCity","")));
+            "navigationMode","split","splitFrame",config.bool("splitFrame",true),"weatherCity",config.string("weatherCity","")));
         emit("favorites",config.favorites());emit("weather",config.weather());
     }
     private void pushState(){

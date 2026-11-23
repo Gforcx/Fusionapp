@@ -24,6 +24,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 import android.widget.Toast;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,8 +75,12 @@ public final class SplitScreenService extends AccessibilityService {
     private String failureStage = "";
     private Observation latest = new Observation();
     private WindowManager windowManager;
-    private View seam;
+    private SplitFrameView seam;
     private SplitGeometry.Box seamBounds;
+    private boolean frameEnabled = true, seamFramed, decorationAuthoritative;
+    private boolean seamHasUnobscuredGap;
+    private int seamWindowId = -1, decorationSignature, failedFrameSignature;
+    private boolean framePlacementFailed;
     // Window identities are cached separately from geometry. Rectangles always come
     // from the current getWindows() result; no old rectangle is ever reused.
     private final SparseArray<String> windowPackages = new SparseArray<>();
@@ -98,6 +103,20 @@ public final class SplitScreenService extends AccessibilityService {
     };
 
     public static boolean isConnected() { return instance != null; }
+
+    /** Settings affect decoration only; they never resize or reopen either task. */
+    public static void settingsChanged() {
+        SplitScreenService service = instance;
+        if (service == null) return;
+        service.handler.post(() -> {
+            if (instance != service) return;
+            service.frameEnabled = new Config(service).bool("splitFrame", true);
+            service.framePlacementFailed = false;
+            service.hideDecoration();
+            if (service.phase == Phase.RUNNING) service.enqueue(0);
+            service.publish();
+        });
+    }
 
     /** Must be called for an explicit request from a visible activity. */
     public static boolean begin(Context context) {
@@ -153,7 +172,9 @@ public final class SplitScreenService extends AccessibilityService {
             out.put("mode", "split");
             out.put("accessibilityGranted", connected || accessibilityEnabled(context));
             out.put("serviceConnected", connected);
+            out.put("frameEnabled", new Config(context).bool("splitFrame", true));
             if (!connected) {
+                out.put("frameVisible", false);
                 out.put("splitActionAvailability", "unknown");
                 out.put("active", false);
                 out.put("requested", false);
@@ -199,6 +220,7 @@ public final class SplitScreenService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        frameEnabled = new Config(this).bool("splitFrame", true);
         clearWindowOwners();
         if (ownerReader == null || ownerReader.isShutdown())
             ownerReader = Executors.newSingleThreadExecutor(task -> new Thread(task, "RoadDeckWindowOwner"));
@@ -257,6 +279,10 @@ public final class SplitScreenService extends AccessibilityService {
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event == null) return;
         int windowId = event.getWindowId();
+        captureDecorationWindowId();
+        // This passive window never changes app geometry. Reacting to its own
+        // add/layout notifications would hide and restore it repeatedly.
+        if (windowId >= 0 && windowId == seamWindowId) return;
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && windowId >= 0 && event.getPackageName() != null) {
             // Keep ownership events even while idle, before the user starts a pair.
@@ -272,10 +298,8 @@ public final class SplitScreenService extends AccessibilityService {
                 || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             // The old gap is no longer authoritative as soon as the windows change.
             // Hide immediately; a new scan must revalidate both apps before restoring it.
-            if (seam != null) {
-                seam.setAlpha(0f);
-                publish();
-            }
+            hideDecoration();
+            publish();
             enqueue(60);
         }
     }
@@ -677,6 +701,7 @@ public final class SplitScreenService extends AccessibilityService {
         Observation observation = new Observation();
         long startedAt = SystemClock.uptimeMillis();
         try {
+            captureDecorationWindowId();
             Point size = new Point();
             if (windowManager != null) windowManager.getDefaultDisplay().getRealSize(size);
             observation.screenWidth = size.x;
@@ -685,6 +710,8 @@ public final class SplitScreenService extends AccessibilityService {
             List<AccessibilityWindowInfo> windows = getWindows();
             observation.getWindowsMs = SystemClock.uptimeMillis() - windowsStartedAt;
             Set<Integer> seenIds = new HashSet<>();
+            List<OwnedWindow> applicationWindows = new ArrayList<>();
+            List<SplitGeometry.Box> otherOverlays = new ArrayList<>();
             for (AccessibilityWindowInfo window : windows) {
                 try {
                     seenIds.add(window.getId());
@@ -692,12 +719,31 @@ public final class SplitScreenService extends AccessibilityService {
                         observation.divider = true;
                         continue;
                     }
-                    if (window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION
-                            || window.isInPictureInPictureMode()) continue;
                     Rect rect = new Rect();
                     window.getBoundsInScreen(rect);
                     SplitGeometry.Box box = new SplitGeometry.Box(rect.left, rect.top, rect.right, rect.bottom);
+                    if (window.getType() == AccessibilityWindowInfo.TYPE_INPUT_METHOD) {
+                        observation.decorationObstructed = true;
+                        continue;
+                    }
+                    if (window.getType() == AccessibilityWindowInfo.TYPE_SYSTEM) {
+                        SplitGeometry.Box clipped = new SplitGeometry.Box(Math.max(0, rect.left), Math.max(0, rect.top),
+                                Math.min(size.x, rect.right), Math.min(size.y, rect.bottom));
+                        if (clipped.valid()) observation.systemExclusions.add(clipped);
+                        if (window.isFocused()) observation.decorationObstructed = true;
+                        continue;
+                    }
+                    if (window.getType() == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) {
+                        if (window.getId() != seamWindowId && box.valid()) otherOverlays.add(box);
+                        continue;
+                    }
+                    if (window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) continue;
+                    if (window.isInPictureInPictureMode()) {
+                        if (box.valid()) otherOverlays.add(box);
+                        continue;
+                    }
                     if (!SplitGeometry.inside(box, size.x, size.y)) continue;
+                    applicationWindows.add(new OwnedWindow(window.getId(), box));
                     String packageName = windowPackages.get(window.getId());
                     if (packageName == null) {
                         observation.unknownOwners++;
@@ -707,18 +753,32 @@ public final class SplitScreenService extends AccessibilityService {
                     if (WAZE.equals(packageName)
                             && (observation.waze == null || box.area() > observation.waze.area())) {
                         observation.waze = box;
+                        observation.wazeWindowId = window.getId();
                         observation.wazeFocused = window.isFocused();
                     } else if (getPackageName().equals(packageName)
                             && (observation.panel == null || box.area() > observation.panel.area())) {
                         observation.panel = box;
+                        observation.panelWindowId = window.getId();
                         observation.panelFocused = window.isFocused();
+                    } else if (!WAZE.equals(packageName) && !getPackageName().equals(packageName)
+                            && window.isFocused()) {
+                        observation.decorationObstructed = true;
                     }
                 } catch (RuntimeException ignored) {
                     // Windows can disappear between listing and copying. Retry on the next event.
+                    observation.decorationObstructed = true;
                 } finally {
                     window.recycle();
                 }
             }
+            // Leave dialogs, keyboards, other apps and accessibility overlays clean.
+            // This is a decoration-only guard; it does not alter split recognition.
+            if (observation.unknownOwners != 0) observation.decorationObstructed = true;
+            for (OwnedWindow window : applicationWindows)
+                if (window.id != observation.wazeWindowId && window.id != observation.panelWindowId
+                        && intersectsPair(window.bounds, observation)) observation.decorationObstructed = true;
+            for (SplitGeometry.Box box : otherOverlays)
+                if (intersectsPair(box, observation)) observation.decorationObstructed = true;
             liveWindowIds.clear();
             liveWindowIds.addAll(seenIds);
             for (int index = windowPackages.size() - 1; index >= 0; index--)
@@ -729,6 +789,7 @@ public final class SplitScreenService extends AccessibilityService {
                 if (!seenIds.contains(ownerRetryAt.keyAt(index))) ownerRetryAt.removeAt(index);
         } catch (RuntimeException ignored) {
             // An unreadable layout never permits a mask or a successful state.
+            observation.decorationObstructed = true;
         } finally {
             observation.durationMs = SystemClock.uptimeMillis() - startedAt;
             if (observation.durationMs >= 250)
@@ -736,6 +797,10 @@ public final class SplitScreenService extends AccessibilityService {
                         + " getWindowsMs=" + observation.getWindowsMs);
         }
         return observation;
+    }
+
+    private static boolean intersectsPair(SplitGeometry.Box box, Observation observation) {
+        return box.intersects(observation.waze) || box.intersects(observation.panel);
     }
 
     private void requestWindowOwner(AccessibilityWindowInfo window) {
@@ -844,64 +909,127 @@ public final class SplitScreenService extends AccessibilityService {
 
     private void updateSeam(Observation observation) {
         SplitGeometry.Box gap = measuredPair(observation).gap;
-        if (!confirmedPair(observation) || gap == null || gap.width() > maximumGap()) {
+        if (!confirmedPair(observation) || observation.decorationObstructed
+                || (!observation.wazeFocused && !observation.panelFocused)
+                || (gap != null && gap.width() > maximumGap())) {
             removeSeam();
             return;
         }
-        if (gap.equals(seamBounds) && seam != null) {
+        int signature = observation.signature();
+        boolean framed = frameEnabled && !(framePlacementFailed && failedFrameSignature == signature);
+        if (!framed && gap == null) {
+            removeSeam();
+            return;
+        }
+        SplitGeometry.Box bounds = framed
+                ? new SplitGeometry.Box(Math.min(observation.waze.left, observation.panel.left),
+                        Math.min(observation.waze.top, observation.panel.top),
+                        Math.max(observation.waze.right, observation.panel.right),
+                        Math.max(observation.waze.bottom, observation.panel.bottom))
+                : gap;
+        int drawingSignature = 31 * signature + (framed ? 1 : 0);
+        for (SplitGeometry.Box excluded : observation.systemExclusions)
+            drawingSignature = 31 * drawingSignature + excluded.hashCode();
+        decorationAuthoritative = true;
+        if (bounds.equals(seamBounds) && seam != null && decorationSignature == drawingSignature) {
             validateSeamPosition(seam);
             return;
         }
         try {
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams(gap.width(), gap.height(),
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(bounds.width(), bounds.height(),
                     WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                             | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                             | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                     PixelFormat.TRANSLUCENT);
             params.gravity = Gravity.TOP | Gravity.LEFT;
-            params.x = gap.left;
-            params.y = gap.top;
-            params.setTitle("RoadDeck raccord du panneau");
-            seamBounds = gap;
+            params.x = bounds.left;
+            params.y = bounds.top;
+            params.windowAnimations = 0;
+            params.setTitle(framed ? "RoadDeck habillage commun" : "RoadDeck raccord du panneau");
+            seamBounds = bounds;
+            seamFramed = framed;
+            decorationSignature = drawingSignature;
+            seamHasUnobscuredGap = gap != null;
+            for (SplitGeometry.Box excluded : observation.systemExclusions)
+                if (gap != null && gap.intersects(excluded)) seamHasUnobscuredGap = false;
             if (seam == null) {
-                seam = new View(this);
-                seam.setBackgroundColor(0xff0b1020);
+                seam = new SplitFrameView(this);
                 seam.setAlpha(0f);
-                seam.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+                seam.setGeometry(bounds, observation.waze, observation.panel, gap, framed,
+                        observation.systemExclusions);
                 seam.addOnLayoutChangeListener((view, left, top, right, bottom,
                         oldLeft, oldTop, oldRight, oldBottom) -> validateSeamPosition(view));
                 windowManager.addView(seam, params);
             } else {
                 seam.setAlpha(0f);
+                seam.setGeometry(bounds, observation.waze, observation.panel, gap, framed,
+                        observation.systemExclusions);
                 windowManager.updateViewLayout(seam, params);
             }
             View candidate = seam;
             candidate.post(() -> validateSeamPosition(candidate));
         } catch (RuntimeException ignored) {
+            if (framed) {
+                framePlacementFailed = true;
+                failedFrameSignature = signature;
+            }
             removeSeam();
-            // Failure to conceal the divider never blocks the functioning split-screen pair.
+            if (framed && gap != null) enqueue(0);
+            // Decoration failure must never block a functioning split-screen pair.
         }
     }
 
     private void validateSeamPosition(View candidate) {
         if (candidate != seam || seamBounds == null || !candidate.isAttachedToWindow()) return;
+        captureDecorationWindowId();
+        if (!decorationAuthoritative || !active || phase != Phase.RUNNING || instance != this) return;
         int[] location = new int[2];
         candidate.getLocationOnScreen(location);
         SplitGeometry.Box actual = new SplitGeometry.Box(location[0], location[1],
                 location[0] + candidate.getWidth(), location[1] + candidate.getHeight());
         if (actual.equals(seamBounds)) candidate.setAlpha(1f);
-        else if (candidate.getWidth() > 0 && candidate.getHeight() > 0) removeSeam();
+        else if (candidate.getWidth() > 0 && candidate.getHeight() > 0) {
+            boolean fallback = seamFramed;
+            if (fallback) {
+                framePlacementFailed = true;
+                failedFrameSignature = latest.signature();
+            }
+            removeSeam();
+            if (fallback) enqueue(0);
+        }
         publish();
     }
 
+    private void captureDecorationWindowId() {
+        if (seam == null || !seam.isAttachedToWindow() || seamWindowId >= 0) return;
+        // A local node gives our own window ID through public APIs. Never inspect
+        // another application's root or contents to identify this decoration.
+        try {
+            AccessibilityNodeInfo ownNode = seam.createAccessibilityNodeInfo();
+            if (ownNode != null) {
+                try { seamWindowId = ownNode.getWindowId(); }
+                finally { ownNode.recycle(); }
+            }
+        } catch (RuntimeException ignored) { }
+    }
+
+    private void hideDecoration() {
+        decorationAuthoritative = false;
+        if (seam != null) seam.setAlpha(0f);
+    }
+
     private void removeSeam() {
+        hideDecoration();
         if (seam != null) {
             try { if (windowManager != null) windowManager.removeViewImmediate(seam); }
             catch (RuntimeException ignored) { }
         }
         seam = null;
         seamBounds = null;
+        seamWindowId = -1;
+        seamFramed = false;
+        seamHasUnobscuredGap = false;
     }
 
     private void publish() {
@@ -921,7 +1049,13 @@ public final class SplitScreenService extends AccessibilityService {
                     .put("ownerQueriesPending", ownerRequests.size()).put("unknownOwners", latest.unknownOwners)
                     .put("ownerQueryCount", rootQueryCount).put("lastRootDurationMs", lastRootMs)
                     .put("maximumRootDurationMs", maximumRootMs).put("lastToggleDurationMs", lastToggleMs)
-                    .put("dividerCovered", seam != null && seam.getAlpha() > 0.99f);
+                    .put("dividerCovered", seam != null && seamHasUnobscuredGap && seam.getAlpha() > 0.99f)
+                    .put("frameEnabled", frameEnabled)
+                    .put("frameVisible", seam != null && seamFramed && seam.getAlpha() > 0.99f)
+                    .put("frameMaxInsetPx", seam != null && seamFramed ? seam.maximumInsetPixels() : 0)
+                    .put("framePlacementFallback", framePlacementFailed && failedFrameSignature == latest.signature())
+                    .put("decorationObstructed", latest.decorationObstructed);
+            if (seamBounds != null && seamFramed) out.put("frameBounds", boundsJson(seamBounds));
             if (latest.waze != null) out.put("wazeBounds", boundsJson(latest.waze));
             if (latest.panel != null) out.put("panelBounds", boundsJson(latest.panel));
             lastState = out.toString();
@@ -933,9 +1067,17 @@ public final class SplitScreenService extends AccessibilityService {
                 .put("right", box.right).put("bottom", box.bottom);
     }
 
+    private static final class OwnedWindow {
+        final int id;
+        final SplitGeometry.Box bounds;
+        OwnedWindow(int id, SplitGeometry.Box bounds) { this.id = id; this.bounds = bounds; }
+    }
+
     private static final class Observation {
         SplitGeometry.Box waze, panel;
-        boolean divider, wazeFocused, panelFocused;
+        boolean divider, wazeFocused, panelFocused, decorationObstructed;
+        int wazeWindowId = -1, panelWindowId = -1;
+        final List<SplitGeometry.Box> systemExclusions = new ArrayList<>();
         int screenWidth, screenHeight;
         int unknownOwners;
         long durationMs, getWindowsMs;
