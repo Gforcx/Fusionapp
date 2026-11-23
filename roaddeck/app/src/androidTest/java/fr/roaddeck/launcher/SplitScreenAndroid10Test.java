@@ -6,6 +6,7 @@ import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.app.UiAutomation;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
@@ -13,6 +14,8 @@ import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
+import android.provider.Settings;
+import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -27,7 +30,9 @@ import androidx.test.uiautomator.Until;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONObject;
@@ -82,7 +87,55 @@ public final class SplitScreenAndroid10Test {
         assertNotNull("Missing fixture marker", fixture.metaData);
         assertTrue("Missing fixture marker", fixture.metaData.getBoolean("roaddeck.navigation_fixture", false));
         device.wakeUp();
+        enableSplitServiceAfterUiAutomation();
         await("RoadDeck accessibility service connected", 15000, SplitScreenService::isConnected);
+    }
+
+    /**
+     * am instrument force-stops its target package before starting the test process.
+     * A service enabled by adb before instrumentation can remain stuck in AMS's binding
+     * set. Enable it here, only after UiAutomation is connected without suppression.
+     * These shell privileges exist only in the test harness, never in the shipped app.
+     */
+    private void enableSplitServiceAfterUiAutomation() throws Exception {
+        ComponentName target = new ComponentName(context, SplitScreenService.class);
+        String current = Settings.Secure.getString(context.getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        List<String> others = new ArrayList<>();
+        boolean wasEnabled = false;
+        if (current != null) for (String value : current.split(":")) {
+            ComponentName component = ComponentName.unflattenFromString(value);
+            if (component == null) continue;
+            if (component.equals(target)) wasEnabled = true;
+            else others.add(component.flattenToString());
+        }
+        if (wasEnabled || SplitScreenService.isConnected()) {
+            putEnabledServices(others);
+            AccessibilityManager manager = (AccessibilityManager) context.getSystemService(Context.ACCESSIBILITY_SERVICE);
+            await("old accessibility binding disabled", 5000, () -> {
+                if (SplitScreenService.isConnected()) return false;
+                for (AccessibilityServiceInfo service : manager.getEnabledAccessibilityServiceList(
+                        AccessibilityServiceInfo.FEEDBACK_ALL_MASK))
+                    if (target.equals(ComponentName.unflattenFromString(service.getId()))) return false;
+                return true;
+            });
+            // Allow the system-server settings observer to clear a stale *pending* binding too.
+            SystemClock.sleep(500);
+        }
+        others.add(target.flattenToString());
+        putEnabledServices(others);
+        device.executeShellCommand("settings --user current put secure accessibility_enabled 1");
+    }
+
+    private void putEnabledServices(List<String> services) throws Exception {
+        String value = String.join(":", services);
+        if (value.isEmpty()) {
+            device.executeShellCommand("settings --user current delete secure enabled_accessibility_services");
+        } else {
+            assertTrue("Unexpected component characters in accessibility settings",
+                    value.matches("[A-Za-z0-9_.$/:-]+"));
+            device.executeShellCommand("settings --user current put secure enabled_accessibility_services " + value);
+        }
     }
 
     @Test public void nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings() throws Exception {
@@ -163,7 +216,12 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Navigation must occupy almost the full display width", fullScreen.width() >= device.getDisplayWidth() * 0.90);
         assertNull("The panel window must be gone", windowBounds(ROADDECK));
         assertFourCorners(fullScreen, 1);
-        for (int i = 0; i < CORNERS.length; i++) corner(i).click();
+        for (int i = 0; i < CORNERS.length; i++) {
+            corner(i).click();
+            final int index = i;
+            await("fullscreen native counter " + NAMES[i], 5000,
+                    () -> (NAMES[index] + " : 2").equals(corner(index).getText()));
+        }
         assertFourCorners(fullScreen, 2);
         writeState("passed: fixture windows, corner clicks, settings task, fullscreen return");
     }
@@ -191,6 +249,7 @@ public final class SplitScreenAndroid10Test {
     private void assertFourCorners(Rect bounds, int count) {
         for (int i = 0; i < CORNERS.length; i++) {
             UiObject2 button = corner(i);
+            assertEquals("Fixture controls must be native Android buttons", "android.widget.Button", button.getClassName());
             assertTrue("Corner must be an enabled native button: " + CORNERS[i], button.isEnabled() && button.isClickable());
             assertEquals("Counter for " + CORNERS[i], NAMES[i] + " : " + count, button.getText());
             Rect visible = button.getVisibleBounds();
@@ -232,7 +291,7 @@ public final class SplitScreenAndroid10Test {
             try {
                 if (window.getType() != AccessibilityWindowInfo.TYPE_APPLICATION) continue;
                 root = window.getRoot();
-                if (root == null || !packageName.contentEquals(root.getPackageName())) continue;
+                if (root == null || root.getPackageName() == null || !packageName.contentEquals(root.getPackageName())) continue;
                 Rect bounds = new Rect(); window.getBoundsInScreen(bounds);
                 if (!bounds.isEmpty() && (best == null || bounds.width() * bounds.height() > best.width() * best.height())) best = bounds;
             } finally {

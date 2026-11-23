@@ -19,8 +19,8 @@ adb shell input keyevent 82
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r -t fixture/build/outputs/apk/debug/fixture-debug.apk
 adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-adb shell settings put secure enabled_accessibility_services fr.roaddeck.launcher/.SplitScreenService
-adb shell settings put secure accessibility_enabled 1
+# The instrumentation enables accessibility after it connects UiAutomation.
+# Enabling it here would start a service process that am instrument force-stops.
 adb logcat -c
 adb shell am instrument -w -r fr.roaddeck.launcher.test/androidx.test.runner.AndroidJUnitRunner | tee ci-evidence/instrumentation.txt
 python3 - <<'PY'
