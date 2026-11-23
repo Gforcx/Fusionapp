@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' data:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'">
+<title>RoadDeck</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<svg class="defs" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="play" viewBox="0 0 64 64"><path d="M22 12L51 32L22 52Z" fill="currentColor"/></symbol>
+<symbol id="pause" viewBox="0 0 64 64"><rect x="18" y="13" width="11" height="38" rx="3" fill="currentColor"/><rect x="36" y="13" width="11" height="38" rx="3" fill="currentColor"/></symbol>
+<symbol id="heart" viewBox="0 0 64 64"><path d="M32 54L10 32C-3 13 16 2 32 17C48 2 67 13 54 32Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="sun" viewBox="0 0 100 100"><g fill="none" stroke="#ffd65b" stroke-width="5" stroke-linecap="round"><circle cx="50" cy="50" r="22" fill="#ffd65b"/><path d="M50 6v10M50 84v10M6 50h10M84 50h10M19 19l8 8M73 73l8 8M19 81l8-8M73 27l8-8"/></g></symbol>
+<symbol id="cloud" viewBox="0 0 100 100"><path d="M20 74C-1 71 1 45 20 42C19 10 64 7 72 37C105 32 112 76 79 78H21Z" fill="#d8e9ff"/></symbol>
+<symbol id="rain" viewBox="0 0 100 100"><path d="M20 59C1 58 1 35 20 33C21 5 60 3 69 30C98 27 106 61 78 63Z" fill="#b9cde5"/><path d="M25 74l-5 13M48 74l-5 13M71 74l-5 13" stroke="#64caff" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="radioIcon" viewBox="0 0 64 64"><path d="M11 20L52 7" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><rect x="5" y="22" width="54" height="34" rx="7" fill="currentColor"/><circle cx="43" cy="40" r="10" fill="#202236"/><path d="M13 32h13M13 39h13M13 46h7" stroke="#202236" stroke-width="4" stroke-linecap="round"/></symbol>
+</defs></svg>
+<main id="stage" class="stage">
+<div class="skin" aria-hidden="true"></div>
+<div class="clock"><time id="clock">--:--</time><div id="date"></div></div>
+<button class="hotspot top-bluetooth" data-act="bluetoothSettings" aria-label="Réglages Bluetooth"></button>
+<button class="hotspot top-wifi" data-act="wifiSettings" aria-label="Réglages Wi-Fi"></button>
+<button class="hotspot top-signal" data-act="androidSettings" aria-label="Réglages réseau"></button>
+<span id="networkDot" class="network-dot" title="Connexion Internet"></span>
+<button class="hotspot top-settings" data-act="settings" aria-label="Réglages"></button>
+<section id="mapSlot" class="map-slot" aria-label="Afficher Waze à gauche et RoadDeck à droite">
+    <div class="map-lines" aria-hidden="true"></div>
+    <img class="map-logo" src="waze.webp" alt="Waze">
+    <h1>Waze + RoadDeck</h1>
+    <p>Waze réduit à gauche.<br>Vos commandes à droite.</p>
+    <button id="launchWaze" class="primary" data-act="waze">Afficher Waze à gauche</button>
+    <small id="wazeHint">Écran partagé Android · carte entière</small>
+</section>
+<div id="wazeTools" class="waze-tools" hidden><button data-act="wazeBack" aria-label="Retour dans Waze">↩</button><button data-act="wazeClose" aria-label="Fermer le panneau RoadDeck">✕</button></div>
+<div id="wazeStatus" class="waze-status" aria-live="polite"></div>
+<button id="gateButton" class="gate-button" data-act="gate">Ouvrir</button>
+<div id="gateStatus" class="gate-status" aria-live="polite"></div>
+<button class="weather-widget" data-act="weatherSettings" aria-label="Réglages météo">
+    <svg id="weatherIcon" class="weather-icon"><use href="#cloud"/></svg>
+    <span class="weather-label">Météo</span><span id="weatherTemp" class="weather-temp">-- °C</span>
+    <span id="weatherDescription" class="weather-description">Choisir une ville</span>
+    <span id="weatherRange" class="weather-range">↑ -- °C&nbsp;&nbsp; ↓ -- °C</span>
+    <span id="weatherCity" class="weather-city">Open-Meteo</span>
+</button>
+<section class="media" aria-label="Panneau unique musique et radio">
+    <div class="tabs" role="tablist" aria-label="Source audio">
+        <button id="musicTab" class="selected" role="tab" aria-selected="true" data-act="musicTab">♫ Musique</button>
+        <button id="radioTab" role="tab" aria-selected="false" data-act="radioTab"><svg><use href="#radioIcon"/></svg>Radio</button>
+    </div>
+    <button id="coverButton" class="cover-button" data-act="openSource" aria-label="Ouvrir la source audio"><img id="cover" src="cover.webp" alt="Illustration musicale"><span id="radioCover" hidden><svg><use href="#radioIcon"/></svg><small>RADIO INTERNET</small></span></button>
+    <button id="trackButton" class="track" data-act="openSource"><strong id="trackTitle">Choisir une application</strong><span id="trackArtist">Spotify, Deezer et vos lecteurs Android</span></button>
+    <button id="favoriteButton" class="favorite-button" data-act="favorite" aria-label="Favoris"><svg><use href="#heart"/></svg></button>
+    <button id="timeline" class="timeline" aria-label="Position de lecture"><span id="progress"></span></button>
+    <span id="mediaTime" class="media-time">--:-- / --:--</span>
+    <button class="hotspot source-button" data-act="sources" aria-label="Choisir la source"></button>
+    <button class="hotspot previous-button" data-act="previous" aria-label="Précédent"></button>
+    <button id="playButton" class="play-button" data-act="play" aria-label="Lecture"><svg><use href="#play"/></svg></button>
+    <button class="hotspot next-button" data-act="next" aria-label="Suivant"></button>
+    <button class="hotspot open-button" data-act="openSource" aria-label="Ouvrir la source"></button>
+</section>
+<nav aria-label="Applications principales">
+    <button class="hotspot dock-apps" data-act="apps" aria-label="Toutes les applications"></button>
+    <button class="hotspot dock-waze" data-act="waze" aria-label="Ouvrir Waze"></button>
+    <button class="hotspot dock-music" data-act="mediaPanel" aria-label="Musique et radio"></button>
+    <button class="hotspot dock-gate" data-act="gateSettings" aria-label="Réglages du portail"></button>
+    <button class="hotspot dock-weather" data-act="weatherSettings" aria-label="Réglages météo"></button>
+    <button class="hotspot dock-settings" data-act="settings" aria-label="Réglages"></button>
+</nav>
+<div id="previewBadge" class="preview-badge" hidden>APERÇU WEB · commandes Android indisponibles</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<div id="overlay" class="overlay" hidden>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <header><h2 id="dialogTitle">Réglages</h2><button class="close" data-act="close" aria-label="Fermer">✕</button></header>
+        <div id="settingsLayout" class="settings-layout">
+            <nav id="settingsNav" aria-label="Catégories de réglages">
+                <button data-section="general" class="active">Général</button><button data-section="waze">Waze</button>
+                <button data-section="music">Musique</button><button data-section="radio">Radio Internet</button>
+                <button data-section="gate">Portail Tuya</button><button data-section="weather">Météo</button><button data-section="about">Informations</button>
+            </nav>
+            <form id="settingsForm" class="settings-content">
+                <section data-page="general">
+                    <h3>Votre tableau de bord</h3><p>Paramétrez l’application à l’arrêt. Le décor reprend la maquette. Les données affichées proviennent des services connectés.</p>
+                    <label class="check"><input type="checkbox" name="keepScreen">Garder l’écran allumé</label>
+                    <label class="check"><input type="checkbox" name="wazeAuto">Ouvrir Waze au lancement d’RoadDeck</label>
+                    <div class="actions"><button type="button" data-act="defaultLauncher">Choisir RoadDeck comme accueil</button><button type="button" data-act="notificationPermission">Autoriser la notification radio</button></div>
+                    <p class="note">RoadDeck ne démarre pas la radio tout seul au démarrage. Aucun accès GPS n’est demandé : la ville météo est choisie manuellement.</p>
+                    <button type="button" data-act="androidSettings">Réglages Android</button>
+                </section>
+                <section data-page="waze" hidden>
+                    <h3>Waze réduit à gauche · commandes à droite</h3>
+                    <p>Android attribue une partie de l’écran à Waze et l’autre à RoadDeck. Waze adapte sa carte à sa fenêtre ; les commandes RoadDeck ne recouvrent plus la navigation.</p>
+                    <input type="hidden" name="wazeMode" value="split">
+                    <div class="actions"><button type="button" data-act="wazeSetup">Activer l’assistant d’écran partagé</button><button type="button" data-act="testWaze">Afficher Waze à gauche</button><button type="button" data-act="wazeClose">Waze en grand</button></div>
+                    <p id="wazeSetupStatus" class="note" aria-live="polite">Activez l’assistant RoadDeck dans les réglages d’accessibilité, puis revenez ici.</p>
+                    <p class="note">L’assistant utilise l’action d’écran partagé d’Android pour placer les deux applications. Son activation se fait dans les réglages d’accessibilité. Aucun Shizuku ni accès root n’est demandé.</p>
+                    <p class="note warning">L’autoradio doit proposer l’écran partagé. Android contrôle la séparation et la largeur des deux parties ; elles ne peuvent pas être imposées par un réglage RoadDeck. Si le système refuse ce mode, un message explique le blocage.</p>
+                    <p class="note">Le bouton « Waze en grand » ferme les commandes et redonne l’écran à la navigation. Configurez et vérifiez la disposition à l’arrêt.</p>
+                </section>
+                <section data-page="music" hidden>
+                    <h3>Applications musicales Android</h3><p class="note warning">Message « L’accès a été refusé à cette appli » : Infos de l’appli → menu ⋮ → Autoriser les paramètres restreints, puis activez RoadDeck dans Accès aux notifications. Cette autorisation peut exposer des notifications sensibles. Elle ne sert pas à intégrer Waze.</p><p>Les comptes, recherches et téléchargements restent dans Spotify, Deezer ou votre lecteur. RoadDeck reprend leur session multimédia : titre, pochette et commandes disponibles.</p>
+                    <div class="choice"><span>Application choisie</span><strong id="selectedMusic">Spotify</strong><button type="button" data-act="chooseMusic">Changer</button></div>
+                    <div class="actions"><button type="button" data-act="permissions">Autoriser les commandes musicales</button><button type="button" data-act="appInfo">Débloquer les paramètres restreints</button><button type="button" data-act="openMusic">Ouvrir l’application musicale</button></div>
+                    <p class="note">Activez RoadDeck dans « Accès aux notifications ». Le code ne lit pas le contenu des messages et ne transmet pas les notifications. Démarrez une première lecture dans l’application choisie.</p>
+                    <p class="note">Si Android bloque cette autorisation pour un APK installé manuellement, consultez les informations de l’application et l’option système « Autoriser les paramètres restreints » lorsqu’elle est proposée.</p>
+                </section>
+                <section data-page="radio" hidden>
+                    <h3>Radio Internet avec tampon audio</h3>
+                    <label>Réserve initiale souhaitée<select name="radioBuffer"><option value="5">5 secondes — démarrage court</option><option value="15">15 secondes — équilibré</option><option value="30">30 secondes — réseau irrégulier</option><option value="60">60 secondes — réserve longue</option><option value="120">120 secondes — forte latence</option></select></label>
+                    <p class="note">La radio attend le remplissage de ce tampon avant de démarrer. Une réserve de 30 secondes peut demander environ 30 secondes d’attente et de décalage pour un direct. Le tampon se remplit réellement, il n’est pas fictif.</p>
+                    <p class="note warning">Ce tampon en mémoire amortit seulement les coupures plus courtes que sa réserve. Il ne permet pas de recevoir une émission future sans réseau. Les flux HLS utilisent un démarrage limité à 8 secondes pour rester compatibles avec les fenêtres de direct courtes.</p>
+                    <button type="button" data-act="radioDirectory">Chercher une station / ajouter un flux</button>
+                    <p class="note">Lecteur Android Media3. Annuaire Radio Browser. Favoris locaux. Reconnexion automatique sur les erreurs réseau récupérables. Les réglages du tampon s’appliquent au prochain démarrage de la station.</p>
+                </section>
+                <section data-page="gate" hidden>
+                    <h3>Portail piloté par Tuya</h3><p>Exécution d’une scène Tuya « Exécuter / Tap-to-Run ». Le compte Tuya de l’application doit être lié à votre projet Cloud avec les droits nécessaires.</p>
+                    <label>Région du projet<select name="tuyaEndpoint"><option value="https://openapi.tuyaeu.com">Europe — tuyaeu.com</option><option value="https://openapi-weaz.tuyaeu.com">Europe de l’Ouest — weaz</option><option value="https://openapi.tuyaus.com">Amérique — tuyaus.com</option><option value="https://openapi-ueaz.tuyaus.com">Amérique Est — ueaz</option><option value="https://openapi.tuyacn.com">Chine</option><option value="https://openapi.tuyain.com">Inde</option></select></label>
+                    <div class="two-cols"><label>Access ID<input name="tuyaClient" autocomplete="off" spellcheck="false"></label><label>Access Secret<input name="tuyaSecret" type="password" autocomplete="new-password" spellcheck="false" placeholder="À renseigner uniquement sur l’appareil"></label><label>Home ID<input name="tuyaHome" autocomplete="off" spellcheck="false"></label><label>Scene ID<input name="tuyaScene" autocomplete="off" spellcheck="false"></label></div>
+                    <label class="check"><input type="checkbox" name="gateConfirm">Demander confirmation avant chaque commande</label>
+                    <div class="actions"><button type="button" data-act="tuyaTest">Enregistrer et lister les scènes</button><button type="button" data-act="openTuya">Ouvrir Tuya / Smart Life</button><button type="button" data-act="clearSecret">Effacer le secret enregistré</button></div>
+                    <div id="tuyaScenes"></div><p class="note">Le test liste les scènes, sans ouvrir le portail. Le secret est chiffré sur l’appareil avec Android Keystore. Une commande acceptée ne prouve pas la position réelle du portail.</p>
+                </section>
+                <section data-page="weather" hidden>
+                    <h3>Votre météo</h3><p>Choisissez une ville. Actualisation toutes les 15 minutes. En l’absence de réseau, l’heure de la dernière donnée reste affichée.</p>
+                    <div class="search-row"><input id="cityQuery" placeholder="Rechercher une ville" autocomplete="off"><button type="button" data-act="searchCities">Rechercher</button></div>
+                    <div id="cityResults" class="results"></div>
+                    <label>Ville retenue<input name="weatherCity" readonly></label>
+                    <div class="two-cols"><label>Latitude<input name="weatherLat" readonly></label><label>Longitude<input name="weatherLon" readonly></label></div>
+                    <button type="button" data-act="weatherRefresh">Actualiser les données</button>
+                    <p class="note">Données Open-Meteo, attribution CC BY 4.0. Pas de clé API pour l’usage non commercial prévu par ce projet.</p>
+                </section>
+                <section data-page="about" hidden>
+                    <h3>RoadDeck 0.5.0 — écran partagé</h3><p>Waze à gauche ; commandes RoadDeck à droite ; sessions musicales Android ; radio native ; API Tuya et Open-Meteo.</p>
+                    <p class="note warning">L’affichage dépend de la prise en charge de l’écran partagé par l’autoradio. Les tests d’interface utilisent une passerelle Android simulée ; ils ne constituent pas un essai de navigation sur votre appareil.</p>
+                    <pre id="diagnostics">Diagnostic disponible dans l’application Android.</pre><button type="button" data-act="diagnostics">Actualiser le diagnostic</button>
+                    <p class="note">Aucune publicité, aucun suivi publicitaire, aucun serveur RoadDeck. Les services sélectionnés reçoivent les requêtes nécessaires à leur fonctionnement. Waze, Spotify, Deezer et Tuya restent des applications tierces indépendantes.</p>
+                </section>
+                <footer><button type="submit" class="primary">Enregistrer les réglages</button><span id="saveStatus"></span></footer>
+            </form>
+        </div>
+        <div id="picker" class="picker" hidden>
+            <div id="radioSearchControls" hidden><div class="search-row"><input id="radioQuery" placeholder="France Inter, RTL, FIP…" autocomplete="off"><button data-act="searchRadio">Rechercher</button><label class="inline-check"><input id="franceOnly" type="checkbox" checked> France</label></div><div class="actions"><button data-act="showFavorites">Mes favoris</button><button data-act="manualRadio">Ajouter une URL de flux</button></div></div>
+            <div id="manualRadioForm" hidden><label>Nom de la station<input id="manualName" placeholder="Ma station"></label><label>Adresse du flux MP3, AAC ou HLS<input id="manualUrl" type="url" placeholder="https://…"></label><button data-act="playManual">Écouter ce flux</button></div>
+            <div id="pickerResults" class="results"></div>
+        </div>
+    </section>
+</div>
+</main><script src="app.js"></script></body></html>

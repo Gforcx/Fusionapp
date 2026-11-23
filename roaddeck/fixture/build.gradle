@@ -1,0 +1,18 @@
+plugins { id 'com.android.application' }
+
+// Opt-in CI fixture. This APK is never part of the RoadDeck deliverable.
+android {
+    namespace 'com.waze'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.waze'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName 'navigation-test-only'
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

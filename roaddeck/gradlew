@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Small source-controlled launcher: obtains Gradle from its official distribution.
+# Requires a JDK and an Android SDK already installed. Not the standard wrapper jar.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+VERSION=8.9
+TOOLS="$ROOT/.tools"
+GRADLE="$TOOLS/gradle-$VERSION/bin/gradle"
+if [[ ! -x "$GRADLE" ]]; then
+  mkdir -p "$TOOLS"
+  URL="https://services.gradle.org/distributions/gradle-$VERSION-bin.zip"
+  curl --fail --location --retry 3 "$URL" -o "$TOOLS/gradle.zip"
+  EXPECTED="$(curl --fail --location --retry 3 "$URL.sha256")"
+  ACTUAL="$(sha256sum "$TOOLS/gradle.zip" | cut -d' ' -f1)"
+  [[ "$EXPECTED" == "$ACTUAL" ]] || { echo 'Gradle checksum mismatch' >&2; exit 1; }
+  unzip -q -o "$TOOLS/gradle.zip" -d "$TOOLS"
+fi
+exec "$GRADLE" -p "$ROOT" "$@"

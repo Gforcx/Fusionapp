@@ -1,0 +1,25 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'"><title>RoadDeck 0.5.0 — écran partagé</title><link rel="stylesheet" href="overlay.css"></head><body>
+<svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8Z"/></symbol>
+<symbol id="pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></symbol>
+<symbol id="next" viewBox="0 0 24 24"><path d="m4 5 12 7L4 19Zm13 0h3v14h-3z"/></symbol>
+<symbol id="prev" viewBox="0 0 24 24"><path d="m20 5-12 7 12 7ZM4 5h3v14H4z"/></symbol>
+<symbol id="gate" viewBox="0 0 32 26"><path d="M2 24V2h3v22m22 0V2h3v22M5 7h22M5 22h22M10 7v15m6-15v15m6-15v15" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+<symbol id="weather" viewBox="0 0 32 26"><path d="M8 20a5 5 0 1 1 1-10 8 8 0 0 1 15 1 5 5 0 1 1 1 10H8Z" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+<symbol id="gear" viewBox="0 0 24 24"><path d="m9 3-1 3-3 1 1 4-2 2 2 3 3-1 3 3 3-2 3 1 2-4-2-2 1-4-4-1-1-3Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="11" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+</defs></svg>
+<main id="dashboard">
+<header><div class="brand"><b>ROADDECK</b><span id="date"></span></div><time id="clock">--:--</time><button id="settings" data-act="settings" aria-label="Réglages"><svg><use href="#gear"/></svg></button></header>
+<section class="media" aria-label="Panneau unique musique et radio">
+<div class="tabs" role="tablist"><button id="musicTab" data-act="music" role="tab" aria-selected="true">♫ Musique</button><button id="radioTab" data-act="radio" role="tab" aria-selected="false">◉ Radio</button></div>
+<button class="track" id="source" data-act="source" aria-label="Choisir la source audio"><div class="art"><img id="cover" src="cover.webp" alt="Pochette"><span id="radioArt" hidden>◉</span></div><div class="track-info"><strong id="trackTitle">Votre musique</strong><span id="trackArtist">Lancez votre lecteur</span></div></button>
+<div class="controls"><button data-act="previous" aria-label="Précédent"><svg><use href="#prev"/></svg></button><button id="playButton" data-act="play" aria-label="Lecture"><svg><use href="#play"/></svg></button><button data-act="next" aria-label="Suivant"><svg><use href="#next"/></svg></button></div>
+<div class="progress"><span id="progress"></span></div><div class="media-bottom"><small id="mediaStatus">—</small><button id="sources" data-act="source">Source ›</button></div>
+</section>
+<div class="lower"><section class="gate"><div class="mini-heading"><svg><use href="#gate"/></svg><b>Portail</b></div><button id="gateButton" data-act="gate">Ouvrir</button></section><button class="weather" data-act="weather"><div class="mini-heading"><svg><use href="#weather"/></svg><b id="temperature">-- °C</b></div><span id="weatherText">Choisir une ville</span><small id="weatherStamp">Open-Meteo</small></button></div>
+<footer><button id="hideButton" data-act="collapse">‹ Waze en grand</button><button id="closeButton" data-act="stop" aria-label="Fermer les commandes et afficher Waze en grand">✕</button></footer>
+</main>
+<div id="message" role="status" hidden></div>
+<section id="confirm" class="modal" role="dialog" aria-modal="true" aria-label="Confirmer la commande du portail" hidden><div><svg class="large"><use href="#gate"/></svg><h2>Ouvrir le portail ?</h2><p>Vérifiez que la zone de mouvement est libre.</p><button id="confirmGate" class="primary">Envoyer la commande</button><button id="cancelGate">Annuler</button></div></section>
+<section id="stations" class="modal" role="dialog" aria-modal="true" aria-label="Radios favorites" hidden><div><h2>Mes radios</h2><div id="stationList"></div><button id="searchRadio">Chercher une autre radio</button><button id="closeStations">Retour</button></div></section>
+<script src="overlay.js"></script></body></html>

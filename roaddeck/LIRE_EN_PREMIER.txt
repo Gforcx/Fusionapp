@@ -1,0 +1,16 @@
+RoadDeck 0.5.0 — Waze réduit dans une vraie fenêtre Android
+
+1. Installer RoadDeck.apk comme mise à jour, sans désinstaller.
+2. Réglages → Waze → Activer l’assistant d’écran partagé.
+3. Activer RoadDeck — écran partagé dans l’accessibilité Android.
+4. Revenir dans RoadDeck puis Afficher Waze à gauche.
+
+Le panneau n’occulte plus la partie droite de Waze. Android donne une vraie
+surface plus petite à Waze, avec ses commandes tactiles natives.
+Waze en grand ferme le panneau et rend toute la largeur à Waze.
+
+Le partage d’écran doit être disponible dans le micrologiciel de l’autoradio.
+Les essais sur émulateur ne remplacent pas un essai avec Waze réel sur cet appareil.
+Les APK de fixture ou de test, et une APK non signée, ne sont pas la livraison.
+
+Le dossier signing reste privé. Il contient la clé qui permet les mises à jour.

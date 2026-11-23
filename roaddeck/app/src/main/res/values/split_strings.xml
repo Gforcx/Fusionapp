@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="split_service_description">Place Waze à gauche et RoadDeck à droite avec le partage d’écran Android. Cet assistant utilise les noms et dimensions des fenêtres pour vérifier que Waze est réellement réduit. Il ne lit pas les textes, ne capture pas l’écran et ne transmet aucun contenu d’écran. Le placement démarre depuis RoadDeck.</string>
+</resources>
