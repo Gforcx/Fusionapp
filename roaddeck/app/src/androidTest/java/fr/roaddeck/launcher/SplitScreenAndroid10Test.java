@@ -15,6 +15,7 @@ import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityManager;
@@ -208,8 +209,9 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Failed to save settings screenshot", device.takeScreenshot(
                 new File(evidenceDirectory(), "split-settings.png")));
 
-        // Exercise the compact settings Back handler and closePanelSettings bridge.
-        assertTrue("Android Back was not injected", device.pressBack());
+        // pressBack() waits for a content-change event, which need not accompany
+        // activity closure. Check real key injection, then the actual lifecycle below.
+        assertTrue("Android Back was not injected", device.pressKeyCode(KeyEvent.KEYCODE_BACK));
         await("settings activity finished", 10000, () -> findActivity(PanelSettingsActivity.class) == null);
         panel = awaitActivity(SidePanelActivity.class, 10000);
         assertEquals("Returning from settings must preserve the panel task", panelTask, taskId(panel));

@@ -1,6 +1,10 @@
 'use strict';
 (() => {
     const $ = id => document.getElementById(id);
+    function setText(id, value) {
+        const node = $(id), text = String(value);
+        if (node.textContent !== text) node.textContent = text;
+    }
     function replaceContents(parent, child) {
         while (parent.firstChild) parent.removeChild(parent.firstChild);
         if (child) parent.appendChild(child);
@@ -39,9 +43,9 @@
     }
     function clock() {
         const now = new Date();
-        $('clock').textContent = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+        setText('clock', now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}));
         const d = now.toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
-        $('date').textContent = d.charAt(0).toUpperCase() + d.slice(1);
+        setText('date', d.charAt(0).toUpperCase() + d.slice(1));
     }
     function setTab(tab, user = true) {
         state.tab = tab; if (user) state.touchedTab = true;
@@ -206,9 +210,9 @@
     function renderWaze() {
         $('wazeTools').hidden=!(state.waze.requested||state.waze.active);
         const message=state.waze.message||(state.waze.accessibilityGranted?'Assistant activé. Affichez Waze à gauche.':'Activez l’assistant d’écran partagé dans les réglages.');
-        $('wazeHint').textContent=message;
-        $('wazeSetupStatus').textContent=message;
-        $('wazeStatus').textContent=state.waze.message||'';
+        setText('wazeHint',message);
+        setText('wazeSetupStatus',message);
+        setText('wazeStatus',state.waze.message||'');
     }
     function previousOrNext(direction) {
         if(state.tab==='music'){send('media',{action:direction>0?'next':'previous'});return;}
