@@ -873,10 +873,14 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private static boolean isAbovePair(OwnedWindow window, Observation observation) {
+        SplitGeometry.Box gap = SplitGeometry.pair(observation.waze, observation.panel,
+                observation.screenWidth, observation.screenHeight, observation.screenWidth).gap;
         return (observation.waze != null && window.layer >= observation.wazeLayer
                         && window.bounds.intersects(observation.waze))
                 || (observation.panel != null && window.layer >= observation.panelLayer
-                        && window.bounds.intersects(observation.panel));
+                        && window.bounds.intersects(observation.panel))
+                || (gap != null && window.layer >= Math.min(observation.wazeLayer, observation.panelLayer)
+                        && window.bounds.intersects(gap));
     }
 
     private static void clipAbovePair(OwnedWindow window, Observation observation) {

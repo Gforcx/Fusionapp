@@ -66,7 +66,7 @@ public final class SplitFrameRenderingTest {
                 Bitmap clipped = frame.render(Collections.singletonList(screenCutout), false);
 
                 assertTransparent(clipped, localCutout);
-                assertIdenticalOutside("local-exclusion", baseline, clipped, localCutout);
+                assertUnchangedOutside("local-exclusion", baseline, clipped, localCutout, true);
                 long removed = (long) localCutout.width() * localCutout.height();
                 assertEquals("A small obstruction must remove only its part of the left margin",
                         navigationBefore - removed, frame.view.navigationPaintedPixels());
@@ -96,7 +96,7 @@ public final class SplitFrameRenderingTest {
                 assertOpaque(preview, middleX, middleY);
                 Rect badgeArea = new Rect(frame.dp(12), middleY - frame.dp(20),
                         frame.navigation.width() - frame.dp(12), middleY + frame.dp(20));
-                assertIdenticalOutside("preview", baseline, preview, badgeArea);
+                assertUnchangedOutside("preview", baseline, preview, badgeArea, false);
 
                 Bitmap afterPreview = frame.render(Collections.emptyList(), false);
                 assertTrue("Disabling the preview must restore the entire transparent opening",
@@ -164,15 +164,17 @@ public final class SplitFrameRenderingTest {
         }
     }
 
-    private static void assertIdenticalOutside(String label, Bitmap expected, Bitmap actual,
-            Rect changedArea) {
+    private static void assertUnchangedOutside(String label, Bitmap expected, Bitmap actual,
+            Rect changedArea, boolean allowClipEdgeRounding) {
         int width = expected.getWidth(), height = expected.getHeight();
         int[] before = new int[width * height], after = new int[width * height];
         expected.getPixels(before, 0, width, 0, 0, width, height);
         actual.getPixels(after, 0, width, 0, 0, width, height);
-        int changed = 0, partialAlpha = 0, bothOpaque = 0;
+        int changed = 0, partialAlpha = 0, bothOpaque = 0, acceptedEdgeRounding = 0, unexpected = 0;
         int flatOpaque = 0, flatTransparent = 0;
         int maxAlpha = 0, maxRed = 0, maxGreen = 0, maxBlue = 0;
+        int maxPremultipliedRed = 0, maxPremultipliedGreen = 0, maxPremultipliedBlue = 0;
+        int alphaCoreChanges = 0;
         StringBuilder samples = new StringBuilder();
         for (int i = 0; i < before.length; i++) {
             int x = i % width, y = i / width;
@@ -182,27 +184,61 @@ public final class SplitFrameRenderingTest {
                 if ((a0 > 0 && a0 < 255) || (a1 > 0 && a1 < 255)) partialAlpha++;
                 if (a0 == 255 && a1 == 255) bothOpaque++;
                 boolean flat = uniformNeighborhood(before, width, height, x, y);
+                boolean flatAfter = uniformNeighborhood(after, width, height, x, y);
                 if (flat && a0 == 255) flatOpaque++;
                 if (flat && a0 == 0) flatTransparent++;
-                maxAlpha = Math.max(maxAlpha, Math.abs(a0 - a1));
+                int alphaDelta = Math.abs(a0 - a1);
+                int premultipliedRed = premultipliedDelta(before[i], after[i], 16);
+                int premultipliedGreen = premultipliedDelta(before[i], after[i], 8);
+                int premultipliedBlue = premultipliedDelta(before[i], after[i], 0);
+                boolean sameAlphaCore = (a0 >= 128) == (a1 >= 128);
+                if (!sameAlphaCore) alphaCoreChanges++;
+                // API 29 bitmap evidence shows rectangular vs. complex clipping changes
+                // 56 curve-edge pixels: alpha <= 1 and premultiplied RGB <= 2. Raw RGB
+                // can differ by 255 at alpha 1, so it is not a meaningful coverage test.
+                // No allowance applies to flat interiors, the majority-alpha silhouette,
+                // or any displacement/intensity change larger than this measured rounding.
+                boolean edgeRounding = allowClipEdgeRounding
+                        && x > 0 && y > 0 && x < width - 1 && y < height - 1
+                        && !flat && !flatAfter && sameAlphaCore && alphaDelta <= 1
+                        && premultipliedRed <= 2 && premultipliedGreen <= 2
+                        && premultipliedBlue <= 2;
+                if (edgeRounding) acceptedEdgeRounding++;
+                else unexpected++;
+                maxAlpha = Math.max(maxAlpha, alphaDelta);
                 maxRed = Math.max(maxRed, Math.abs(Color.red(before[i]) - Color.red(after[i])));
                 maxGreen = Math.max(maxGreen, Math.abs(Color.green(before[i]) - Color.green(after[i])));
                 maxBlue = Math.max(maxBlue, Math.abs(Color.blue(before[i]) - Color.blue(after[i])));
+                maxPremultipliedRed = Math.max(maxPremultipliedRed, premultipliedRed);
+                maxPremultipliedGreen = Math.max(maxPremultipliedGreen, premultipliedGreen);
+                maxPremultipliedBlue = Math.max(maxPremultipliedBlue, premultipliedBlue);
                 if (changed <= 24) samples.append(x).append(',').append(y)
                         .append(" before=").append(Integer.toHexString(before[i]))
                         .append(" after=").append(Integer.toHexString(after[i]))
-                        .append(" flat3x3=").append(flat).append('\n');
+                        .append(" flat3x3=").append(flat)
+                        .append(" acceptedEdgeRounding=").append(edgeRounding).append('\n');
             }
         }
-        if (changed != 0) {
-            String details = "changedOutside=" + changed + " partialAlpha=" + partialAlpha
-                    + " bothOpaque=" + bothOpaque + " flatOpaque=" + flatOpaque
-                    + " flatTransparent=" + flatTransparent + " maxDeltaARGB="
-                    + maxAlpha + "," + maxRed + "," + maxGreen + "," + maxBlue
-                    + " permittedRegion=" + changedArea + "\n" + samples;
-            saveComparison(label, expected, actual, details);
+        String details = "changedOutside=" + changed + " acceptedEdgeRounding=" + acceptedEdgeRounding
+                + " unexpected=" + unexpected + " partialAlpha=" + partialAlpha
+                + " bothOpaque=" + bothOpaque + " flatOpaque=" + flatOpaque
+                + " flatTransparent=" + flatTransparent + " alphaCoreChanges=" + alphaCoreChanges
+                + " maxDeltaARGB=" + maxAlpha + "," + maxRed + "," + maxGreen + "," + maxBlue
+                + " maxPremultipliedDeltaRGB=" + maxPremultipliedRed + ","
+                + maxPremultipliedGreen + "," + maxPremultipliedBlue
+                + " permittedRegion=" + changedArea + "\n" + samples;
+        // Keep successful comparison evidence as well as failures for release verification.
+        saveComparison(label, expected, actual, details);
+        android.util.Log.i("SplitFrameRenderingTest", label + ": " + details);
+        if (unexpected != 0) {
             fail("Unrelated decoration changed: " + label + "\n" + details);
         }
+    }
+
+    private static int premultipliedDelta(int before, int after, int shift) {
+        int beforeChannel = ((before >>> shift) & 255) * Color.alpha(before);
+        int afterChannel = ((after >>> shift) & 255) * Color.alpha(after);
+        return Math.abs((beforeChannel + 127) / 255 - (afterChannel + 127) / 255);
     }
 
     private static boolean uniformNeighborhood(int[] pixels, int width, int height, int x, int y) {
