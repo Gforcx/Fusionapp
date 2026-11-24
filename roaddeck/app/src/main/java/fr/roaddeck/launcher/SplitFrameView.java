@@ -54,14 +54,19 @@ final class SplitFrameView extends View {
     long previewPaintedPixels() { return hasDrawnGeometry() ? previewPixels : 0; }
     int revision() { return revision; }
     int drawnRevision() { return drawnRevision; }
+    SplitGeometry.Box navigationBounds() { return navigation; }
+    SplitGeometry.Box panelBounds() { return panel; }
 
     void setGeometry(SplitGeometry.Box area, SplitGeometry.Box navigation,
             SplitGeometry.Box panel, SplitGeometry.Box gap, boolean framed,
             List<SplitGeometry.Box> exclusions, int left, int top, int right, int bottom,
             boolean preview) {
         this.area = area;
-        this.navigation = navigation;
-        this.panel = panel;
+        // Task rectangles may include status/navigation bars on Android 10.
+        // Place the decoration INSIDE the remaining visible surface, rather than
+        // spending its configured top/bottom margins underneath protected bars.
+        this.navigation = visibleFrameBounds(navigation, exclusions);
+        this.panel = visibleFrameBounds(panel, exclusions);
         this.gap = gap;
         this.framed = framed;
         this.preview = preview;
@@ -77,7 +82,42 @@ final class SplitFrameView extends View {
         invalidate();
     }
 
+    /**
+     * Only full-edge exclusions may move the decorative rectangle inward. A
+     * partial floating control remains a local cutout and never relocates a frame.
+     * Updates are simultaneous per pass, so exclusion order cannot change bounds.
+     * Every changed coordinate is an exclusion edge and moves strictly inward;
+     * at most four changes per exclusion are possible before reaching a fixed point.
+     */
+    static SplitGeometry.Box visibleFrameBounds(SplitGeometry.Box original,
+            List<SplitGeometry.Box> exclusions) {
+        if (original == null || !original.valid()) return null;
+        SplitGeometry.Box current = original;
+        for (int pass = 0; pass <= exclusions.size() * 4; pass++) {
+            int left = current.left, top = current.top, right = current.right, bottom = current.bottom;
+            for (SplitGeometry.Box box : exclusions) {
+                if (box == null || !box.valid() || !box.intersects(current)) continue;
+                if (box.left <= current.left && box.right >= current.right) {
+                    if (box.top <= current.top) top = Math.max(top, box.bottom);
+                    if (box.bottom >= current.bottom) bottom = Math.min(bottom, box.top);
+                }
+                if (box.top <= current.top && box.bottom >= current.bottom) {
+                    if (box.left <= current.left) left = Math.max(left, box.right);
+                    if (box.right >= current.right) right = Math.min(right, box.left);
+                }
+            }
+            SplitGeometry.Box next = new SplitGeometry.Box(left, top, right, bottom);
+            // Fully covered or collapsed surfaces have no usable frame, even if
+            // another app's frame or the separator can still be drawn.
+            if (!next.valid()) return null;
+            if (next.equals(current)) return next;
+            current = next;
+        }
+        return null;
+    }
+
     private void buildPaths() {
+        inner.setEmpty();
         navigationFill.reset(); navigationAccent.reset();
         panelFill.reset(); panelAccent.reset();
         if (area == null || !framed) return;

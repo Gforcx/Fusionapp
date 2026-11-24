@@ -1,6 +1,7 @@
 package fr.roaddeck.launcher;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -12,7 +13,11 @@ import android.graphics.Rect;
 import android.view.View;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,7 +66,7 @@ public final class SplitFrameRenderingTest {
                 Bitmap clipped = frame.render(Collections.singletonList(screenCutout), false);
 
                 assertTransparent(clipped, localCutout);
-                assertIdenticalOutside(baseline, clipped, localCutout);
+                assertIdenticalOutside("local-exclusion", baseline, clipped, localCutout);
                 long removed = (long) localCutout.width() * localCutout.height();
                 assertEquals("A small obstruction must remove only its part of the left margin",
                         navigationBefore - removed, frame.view.navigationPaintedPixels());
@@ -91,11 +96,53 @@ public final class SplitFrameRenderingTest {
                 assertOpaque(preview, middleX, middleY);
                 Rect badgeArea = new Rect(frame.dp(12), middleY - frame.dp(20),
                         frame.navigation.width() - frame.dp(12), middleY + frame.dp(20));
-                assertIdenticalOutside(baseline, preview, badgeArea);
+                assertIdenticalOutside("preview", baseline, preview, badgeArea);
 
                 Bitmap afterPreview = frame.render(Collections.emptyList(), false);
                 assertTrue("Disabling the preview must restore the entire transparent opening",
                         baseline.sameAs(afterPreview));
+            }
+        });
+    }
+
+    @Test public void systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder()
+            throws Throwable {
+        onMain(() -> {
+            try (Frame frame = new Frame()) {
+                SplitGeometry.Box topBar = new SplitGeometry.Box(frame.area.left, frame.area.top,
+                        frame.area.right, frame.area.top + frame.dp(24));
+                SplitGeometry.Box bottomBar = new SplitGeometry.Box(frame.area.left,
+                        frame.area.bottom - frame.dp(28), frame.area.right, frame.area.bottom);
+                // This edge only spans the available height after both horizontal bars are removed.
+                SplitGeometry.Box leftBar = new SplitGeometry.Box(frame.area.left, topBar.bottom,
+                        frame.area.left + frame.dp(16), bottomBar.top);
+                List<SplitGeometry.Box> exclusions = Arrays.asList(topBar, bottomBar, leftBar);
+                Bitmap forward = frame.render(exclusions, false);
+                SplitGeometry.Box expectedNavigation = new SplitGeometry.Box(leftBar.right,
+                        topBar.bottom, frame.navigation.right, bottomBar.top);
+                assertEquals(expectedNavigation, frame.view.navigationBounds());
+                int middleX = frame.navigation.width() / 2;
+                assertOpaque(forward, middleX, frame.dp(24) + frame.dp(6));
+                assertOpaque(forward, middleX, frame.area.height() - frame.dp(28) - frame.dp(6));
+                assertOpaque(forward, frame.dp(16) + frame.dp(6), frame.area.height() / 2);
+                assertTransparent(forward, new Rect(0, 0, frame.area.width(), frame.dp(24)));
+                assertTransparent(forward, new Rect(0, frame.area.height() - frame.dp(28),
+                        frame.area.width(), frame.area.height()));
+                assertTransparent(forward, new Rect(0, 0, frame.dp(16), frame.area.height()));
+
+                Bitmap reversed = frame.render(Arrays.asList(leftBar, bottomBar, topBar), false);
+                assertEquals(expectedNavigation, frame.view.navigationBounds());
+                assertTrue("Exclusion ordering must not move the frame or change its pixels",
+                        forward.sameAs(reversed));
+                SplitGeometry.Box floatingControl = new SplitGeometry.Box(expectedNavigation.left,
+                        frame.area.top + frame.dp(80), expectedNavigation.left + frame.dp(8),
+                        frame.area.top + frame.dp(120));
+                assertEquals("A small floating control must not shift the whole navigation frame",
+                        expectedNavigation, SplitFrameView.visibleFrameBounds(frame.navigation,
+                                Arrays.asList(topBar, bottomBar, leftBar, floatingControl)));
+                assertNull("A fully covered app must have no available frame bounds",
+                        SplitFrameView.visibleFrameBounds(frame.navigation,
+                                Collections.singletonList(frame.area)));
             }
         });
     }
@@ -117,16 +164,78 @@ public final class SplitFrameRenderingTest {
         }
     }
 
-    private static void assertIdenticalOutside(Bitmap expected, Bitmap actual, Rect changedArea) {
+    private static void assertIdenticalOutside(String label, Bitmap expected, Bitmap actual,
+            Rect changedArea) {
         int width = expected.getWidth(), height = expected.getHeight();
         int[] before = new int[width * height], after = new int[width * height];
         expected.getPixels(before, 0, width, 0, 0, width, height);
         actual.getPixels(after, 0, width, 0, 0, width, height);
+        int changed = 0, partialAlpha = 0, bothOpaque = 0;
+        int flatOpaque = 0, flatTransparent = 0;
+        int maxAlpha = 0, maxRed = 0, maxGreen = 0, maxBlue = 0;
+        StringBuilder samples = new StringBuilder();
         for (int i = 0; i < before.length; i++) {
             int x = i % width, y = i / width;
             if (!changedArea.contains(x, y) && before[i] != after[i]) {
-                fail("Unrelated decoration changed at " + x + "," + y);
+                changed++;
+                int a0 = Color.alpha(before[i]), a1 = Color.alpha(after[i]);
+                if ((a0 > 0 && a0 < 255) || (a1 > 0 && a1 < 255)) partialAlpha++;
+                if (a0 == 255 && a1 == 255) bothOpaque++;
+                boolean flat = uniformNeighborhood(before, width, height, x, y);
+                if (flat && a0 == 255) flatOpaque++;
+                if (flat && a0 == 0) flatTransparent++;
+                maxAlpha = Math.max(maxAlpha, Math.abs(a0 - a1));
+                maxRed = Math.max(maxRed, Math.abs(Color.red(before[i]) - Color.red(after[i])));
+                maxGreen = Math.max(maxGreen, Math.abs(Color.green(before[i]) - Color.green(after[i])));
+                maxBlue = Math.max(maxBlue, Math.abs(Color.blue(before[i]) - Color.blue(after[i])));
+                if (changed <= 24) samples.append(x).append(',').append(y)
+                        .append(" before=").append(Integer.toHexString(before[i]))
+                        .append(" after=").append(Integer.toHexString(after[i]))
+                        .append(" flat3x3=").append(flat).append('\n');
             }
+        }
+        if (changed != 0) {
+            String details = "changedOutside=" + changed + " partialAlpha=" + partialAlpha
+                    + " bothOpaque=" + bothOpaque + " flatOpaque=" + flatOpaque
+                    + " flatTransparent=" + flatTransparent + " maxDeltaARGB="
+                    + maxAlpha + "," + maxRed + "," + maxGreen + "," + maxBlue
+                    + " permittedRegion=" + changedArea + "\n" + samples;
+            saveComparison(label, expected, actual, details);
+            fail("Unrelated decoration changed: " + label + "\n" + details);
+        }
+    }
+
+    private static boolean uniformNeighborhood(int[] pixels, int width, int height, int x, int y) {
+        if (x == 0 || y == 0 || x == width - 1 || y == height - 1) return false;
+        int expected = pixels[y * width + x];
+        for (int yy = y - 1; yy <= y + 1; yy++) {
+            for (int xx = x - 1; xx <= x + 1; xx++) {
+                if (pixels[yy * width + xx] != expected) return false;
+            }
+        }
+        return true;
+    }
+
+    private static void saveComparison(String label, Bitmap before, Bitmap after, String details) {
+        try {
+            Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+            File directory = context.getExternalFilesDir(null);
+            if (directory == null || (!directory.isDirectory() && !directory.mkdirs()))
+                throw new IllegalStateException("Bitmap evidence directory unavailable");
+            String prefix = "bitmap-" + label;
+            try (FileOutputStream output = new FileOutputStream(new File(directory, prefix + "-before.png"))) {
+                if (!before.compress(Bitmap.CompressFormat.PNG, 100, output))
+                    throw new IllegalStateException("Could not encode before bitmap");
+            }
+            try (FileOutputStream output = new FileOutputStream(new File(directory, prefix + "-after.png"))) {
+                if (!after.compress(Bitmap.CompressFormat.PNG, 100, output))
+                    throw new IllegalStateException("Could not encode after bitmap");
+            }
+            try (FileOutputStream output = new FileOutputStream(new File(directory, prefix + "-diff.txt"))) {
+                output.write(details.getBytes(StandardCharsets.UTF_8));
+            }
+        } catch (Exception error) {
+            android.util.Log.e("SplitFrameRenderingTest", "Could not save comparison evidence", error);
         }
     }
 

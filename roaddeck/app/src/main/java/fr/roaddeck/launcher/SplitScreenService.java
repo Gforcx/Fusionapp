@@ -1228,7 +1228,13 @@ public final class SplitScreenService extends AccessibilityService {
                     .put("frameMaxInsetPx", seam != null && seamFramed ? seam.maximumInsetPixels() : 0)
                     .put("framePlacementFallback", framePlacementFailed && failedFrameSignature == latest.signature())
                     .put("decorationObstructed", latest.decorationObstructed);
-            if (seamBounds != null && seamFramed) out.put("frameBounds", boundsJson(seamBounds));
+            if (seamBounds != null && seamFramed) {
+                out.put("frameBounds", boundsJson(seamBounds));
+                out.put("frameNavigationBounds", seam.navigationBounds() == null
+                        ? JSONObject.NULL : boundsJson(seam.navigationBounds()));
+                out.put("framePanelBounds", seam.panelBounds() == null
+                        ? JSONObject.NULL : boundsJson(seam.panelBounds()));
+            }
             if (lastRequestedFrameBounds != null) out.put("frameRequestedBounds", boundsJson(lastRequestedFrameBounds));
             if (lastPlacedFrameBounds != null) out.put("framePlacedBounds", boundsJson(lastPlacedFrameBounds));
             JSONArray exclusions = new JSONArray();

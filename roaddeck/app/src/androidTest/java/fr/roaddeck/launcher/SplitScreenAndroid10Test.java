@@ -67,6 +67,7 @@ public final class SplitScreenAndroid10Test {
     private UiDevice device;
     private UiAutomation automation;
     private DomProbe domProbe;
+    private Rect testedNavigationContent;
 
     @Rule public final TestWatcher evidence = new TestWatcher() {
         @Override protected void failed(Throwable error, Description description) {
@@ -190,6 +191,15 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Unified frame is enabled by default", snapshot().optBoolean("frameEnabled"));
         assertRectNear("Frame window follows the actual split pair", union(navigation, side),
                 snapshotRect("frameBounds"));
+        // AccessibilityWindowInfo can include system-bar areas even when the app's
+        // native content view is inset. Measure the fixture's actual parent view
+        // independently; do not accept the service's decoration bounds on trust.
+        final Rect navigationContent = corner(0).getParent().getVisibleBounds();
+        testedNavigationContent = new Rect(navigationContent);
+        assertTrue("Native content must stay inside its application window", navigation.contains(navigationContent));
+        assertTrue("Native content must retain useful height", navigationContent.height() > navigation.height() * .75);
+        assertRectNear("Surround follows native content outside protected system bars",
+                navigationContent, snapshotRect("frameNavigationBounds"));
         JSONObject insets = snapshot().getJSONObject("frameInsets");
         for (String edge : new String[]{"left", "top", "right", "bottom"})
             assertEquals("Default surround margin in dp: " + edge, 12, insets.getInt(edge));
@@ -213,10 +223,10 @@ public final class SplitScreenAndroid10Test {
             if (!device.takeScreenshot(framedScreenshot)) return false;
             Bitmap image = BitmapFactory.decodeFile(framedScreenshot.getAbsolutePath());
             if (image == null) return false;
-            boolean visible = isFrameColor(image.getPixel(navigation.left + 5, navigation.centerY()))
-                    && isFrameColor(image.getPixel(navigation.right - 6, navigation.centerY()))
-                    && isFrameColor(image.getPixel(navigation.centerX(), navigation.top + 5))
-                    && isFrameColor(image.getPixel(navigation.centerX(), navigation.bottom - 6));
+            boolean visible = isFrameColor(image.getPixel(navigationContent.left + 5, navigationContent.centerY()))
+                    && isFrameColor(image.getPixel(navigationContent.right - 6, navigationContent.centerY()))
+                    && isFrameColor(image.getPixel(navigationContent.centerX(), navigationContent.top + 5))
+                    && isFrameColor(image.getPixel(navigationContent.centerX(), navigationContent.bottom - 6));
             image.recycle();
             return visible;
         });
@@ -234,11 +244,11 @@ public final class SplitScreenAndroid10Test {
             if (!device.takeScreenshot(plainScreenshot)) return false;
             Bitmap image = BitmapFactory.decodeFile(plainScreenshot.getAbsolutePath());
             if (image == null) return false;
-            boolean removed = !isFrameColor(image.getPixel(navigation.left + 5, navigation.centerY()));
+            boolean removed = !isFrameColor(image.getPixel(navigationContent.left + 5, navigationContent.centerY()));
             image.recycle();
             return removed;
         });
-        assertSubstantialSurround(framedScreenshot, plainScreenshot, navigation);
+        assertSubstantialSurround(framedScreenshot, plainScreenshot, navigationContent);
         setFrameEnabled(true);
         await("unified frame restored", 5000, () -> snapshot().optBoolean("frameVisible"));
         assertRectNear("Restoring the frame preserves navigation size", navigation,
@@ -692,6 +702,11 @@ public final class SplitScreenAndroid10Test {
         try {
             JSONObject state = snapshot().put("testNote", note).put("fixture", true)
                     .put("api", Build.VERSION.SDK_INT).put("realWazeTested", false);
+            if (testedNavigationContent != null) {
+                Rect b = testedNavigationContent;
+                state.put("fixtureContentBounds", new JSONObject().put("left", b.left).put("top", b.top)
+                        .put("right", b.right).put("bottom", b.bottom));
+            }
             try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), name))) {
                 output.write(state.toString(2).getBytes(StandardCharsets.UTF_8));
             }
