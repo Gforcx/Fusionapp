@@ -1,0 +1,215 @@
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitFrameRenderingTest:
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Unrelated decoration changed: local-exclusion
+changedOutside=56 partialAlpha=29 bothOpaque=27 flatOpaque=0 flatTransparent=0 maxDeltaARGB=1,255,128,255 permittedRegion=Rect(0, 80 - 8, 120)
+15,17 before=ff31284e after=ff32284e flat3x3=false
+16,17 before=fe9769cb after=ff9669ca flat3x3=false
+263,17 before=fe9769cb after=ff9669ca flat3x3=false
+264,17 before=ff2f264b after=ff30274c flat3x3=false
+14,18 before=ff201d38 after=ff201d39 flat3x3=false
+15,18 before=fe9266c5 after=ff9166c4 flat3x3=false
+264,18 before=fe9165c3 after=ff9065c2 flat3x3=false
+265,18 before=ff201d39 after=ff211e3a flat3x3=false
+13,19 before=ff0c1020 after=ff0d1021 flat3x3=false
+17,19 before=1ff00ff after=28080ff flat3x3=false
+262,19 before=1ff00ff after=28080ff flat3x3=false
+265,19 before=ff7d58ab after=ff7c58aa flat3x3=false
+16,20 before=a9966cc after=ba25dd1 flat3x3=false
+263,20 before=d9d62d8 after=e926dc8 flat3x3=false
+12,21 before=ff111326 after=ff121327 flat3x3=false
+13,21 before=fe8d62be after=ff8c62be flat3x3=false
+15,21 before=309a6acf after=319768cb flat3x3=false
+264,21 before=39986bce after=3a9a6acf flat3x3=false
+266,21 before=ff8960ba after=ff8961ba flat3x3=false
+267,21 before=ff111326 after=ff121327 flat3x3=false
+11,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+12,23 before=ff9166c4 after=ff9266c4 flat3x3=false
+268,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+14,24 before=89f60df after=98e71c6 flat3x3=false
+
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.assertIdenticalOutside(SplitFrameRenderingTest.java:204)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint$1(SplitFrameRenderingTest.java:69)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$onMain$4(SplitFrameRenderingTest.java:247)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: stream=
+Error in exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint(fr.roaddeck.launcher.SplitFrameRenderingTest):
+java.lang.AssertionError: Unrelated decoration changed: local-exclusion
+changedOutside=56 partialAlpha=29 bothOpaque=27 flatOpaque=0 flatTransparent=0 maxDeltaARGB=1,255,128,255 permittedRegion=Rect(0, 80 - 8, 120)
+15,17 before=ff31284e after=ff32284e flat3x3=false
+16,17 before=fe9769cb after=ff9669ca flat3x3=false
+263,17 before=fe9769cb after=ff9669ca flat3x3=false
+264,17 before=ff2f264b after=ff30274c flat3x3=false
+14,18 before=ff201d38 after=ff201d39 flat3x3=false
+15,18 before=fe9266c5 after=ff9166c4 flat3x3=false
+264,18 before=fe9165c3 after=ff9065c2 flat3x3=false
+265,18 before=ff201d39 after=ff211e3a flat3x3=false
+13,19 before=ff0c1020 after=ff0d1021 flat3x3=false
+17,19 before=1ff00ff after=28080ff flat3x3=false
+262,19 before=1ff00ff after=28080ff flat3x3=false
+265,19 before=ff7d58ab after=ff7c58aa flat3x3=false
+16,20 before=a9966cc after=ba25dd1 flat3x3=false
+263,20 before=d9d62d8 after=e926dc8 flat3x3=false
+12,21 before=ff111326 after=ff121327 flat3x3=false
+13,21 before=fe8d62be after=ff8c62be flat3x3=false
+15,21 before=309a6acf after=319768cb flat3x3=false
+264,21 before=39986bce after=3a9a6acf flat3x3=false
+266,21 before=ff8960ba after=ff8961ba flat3x3=false
+267,21 before=ff111326 after=ff121327 flat3x3=false
+11,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+12,23 before=ff9166c4 after=ff9266c4 flat3x3=false
+268,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+14,24 before=89f60df after=98e71c6 flat3x3=false
+
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.assertIdenticalOutside(SplitFrameRenderingTest.java:204)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint$1(SplitFrameRenderingTest.java:69)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$onMain$4(SplitFrameRenderingTest.java:247)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitScreenAndroid10Test:
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=5
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 66.924
+There was 1 failure:
+1) exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint(fr.roaddeck.launcher.SplitFrameRenderingTest)
+java.lang.AssertionError: Unrelated decoration changed: local-exclusion
+changedOutside=56 partialAlpha=29 bothOpaque=27 flatOpaque=0 flatTransparent=0 maxDeltaARGB=1,255,128,255 permittedRegion=Rect(0, 80 - 8, 120)
+15,17 before=ff31284e after=ff32284e flat3x3=false
+16,17 before=fe9769cb after=ff9669ca flat3x3=false
+263,17 before=fe9769cb after=ff9669ca flat3x3=false
+264,17 before=ff2f264b after=ff30274c flat3x3=false
+14,18 before=ff201d38 after=ff201d39 flat3x3=false
+15,18 before=fe9266c5 after=ff9166c4 flat3x3=false
+264,18 before=fe9165c3 after=ff9065c2 flat3x3=false
+265,18 before=ff201d39 after=ff211e3a flat3x3=false
+13,19 before=ff0c1020 after=ff0d1021 flat3x3=false
+17,19 before=1ff00ff after=28080ff flat3x3=false
+262,19 before=1ff00ff after=28080ff flat3x3=false
+265,19 before=ff7d58ab after=ff7c58aa flat3x3=false
+16,20 before=a9966cc after=ba25dd1 flat3x3=false
+263,20 before=d9d62d8 after=e926dc8 flat3x3=false
+12,21 before=ff111326 after=ff121327 flat3x3=false
+13,21 before=fe8d62be after=ff8c62be flat3x3=false
+15,21 before=309a6acf after=319768cb flat3x3=false
+264,21 before=39986bce after=3a9a6acf flat3x3=false
+266,21 before=ff8960ba after=ff8961ba flat3x3=false
+267,21 before=ff111326 after=ff121327 flat3x3=false
+11,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+12,23 before=ff9166c4 after=ff9266c4 flat3x3=false
+268,23 before=ff0c1020 after=ff0d1021 flat3x3=false
+14,24 before=89f60df after=98e71c6 flat3x3=false
+
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.assertIdenticalOutside(SplitFrameRenderingTest.java:204)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint$1(SplitFrameRenderingTest.java:69)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest.lambda$onMain$4(SplitFrameRenderingTest.java:247)
+	at fr.roaddeck.launcher.SplitFrameRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+FAILURES!!!
+Tests run: 5,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

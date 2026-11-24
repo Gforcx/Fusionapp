@@ -1,0 +1,68 @@
+{
+  "source_commit": "7e5e44781d87bab15b10769fc56046a2fa367c58",
+  "ci_run": 45438472321,
+  "unsigned_artifact_sha256": "c92eccfc8ad89ada00ba6fe20fa661a00166ef7e8cc48f6bf9423cf1f7845426",
+  "apk_sha256": "66955890f4364699770a2ec2a91a8d084947d8c10c374adfcdcc05d106cd83f4",
+  "size": 3280676,
+  "certificate_sha256": "00a0c67f5e9185dab9f2966b3554fe76b77a8ddc671be2627c1fa4f50beb7b8d",
+  "signature_v2": true,
+  "same_certificate": true,
+  "versionCode": 9,
+  "versionName": "0.5.3",
+  "minSdk": 26,
+  "targetSdk": 35,
+  "fixture_in_release": false,
+  "verified_at_utc": "2026-11-24T16:41:46.723470+00:00",
+  "ci_url": "https://github.com/Gforcx/Fusionapp/actions/runs/45438472321",
+  "latest_workflow_all_jobs_passed": true,
+  "android10_instrumentation_tests_passed": 5,
+  "android16_service_binding_passed": true,
+  "four_side_pixel_comparison_passed": true,
+  "manual_surround_screenshot_review_passed": true,
+  "frame_toggle_preserved_navigation_bounds": true,
+  "native_corner_touch_checks_passed": true,
+  "frame_removed_after_fullscreen_return": true,
+  "preview_expiry_checked": true,
+  "preview_visual_capture_confirmed": false,
+  "partial_and_total_clipping_bitmap_tests_passed": true,
+  "emulator_app_variant": "debug",
+  "signed_release_installed_in_emulator": false,
+  "geometry_assertions_passed": 7944,
+  "unit_tests_passed": 2,
+  "javascript_assertions_passed": 133,
+  "real_waze_tested_here": false,
+  "user_head_unit_tested_here": false,
+  "previous_split_mode_confirmed_by_user_on_android10": true,
+  "frame_on_user_head_unit_confirmed": false,
+  "third_party_activity_embedded_in_launcher_view": false,
+  "tuya_credentials_bundled": false,
+  "artifact_digests": [
+    {
+      "name": "roaddeck-service-api29",
+      "id": 14942717257,
+      "digest": "sha256:78db876353f36d4537abb2d0ca4fcf706ee06f0045a52d92f5fcc0d0d157f558"
+    },
+    {
+      "name": "roaddeck-service-api36",
+      "id": 14941603693,
+      "digest": "sha256:d83a8ba47bcb799f4340e71446f34a8f670dd7eca28d6465e144e3979c40011a"
+    },
+    {
+      "name": "roaddeck-service-release-unsigned",
+      "id": 14941513475,
+      "digest": "sha256:c92eccfc8ad89ada00ba6fe20fa661a00166ef7e8cc48f6bf9423cf1f7845426"
+    }
+  ],
+  "android16_emulator_memory": {
+    "api": 36,
+    "host_available_mib": 14996,
+    "guest_ram_mib": 4096,
+    "cold_start_preserved": true,
+    "anr_checks_preserved": true
+  },
+  "ci_attempt_notes": [
+    "Premier passage (45434843149, commit ad3b7abb) : le test visuel a révélé que les rectangles des applications incluaient les barres Android. Les marges haute et basse étaient donc effacées. Le dessin a été corrigé pour entourer la surface disponible entre ces bandes, sans changer les dimensions des tâches.",
+    "Deuxième passage (45436602276, commit 28842f90) : le parcours natif Android 10 complet a réussi. Le seul échec Android 10 concernait une comparaison bitmap trop stricte : 56 pixels d’arrondis variaient d’au plus 1 niveau alpha et 2 niveaux RGB prémultipliés. Aucun intérieur uniforme ne changeait. Le test final tolère uniquement ce lissage sur des voisinages non uniformes, avec silhouette inchangée ; il rejette toujours les pixels ajoutés au centre et les déplacements.",
+    "Le deuxième passage Android 16 a observé une ANR réelle de MainActivity, dans WebView / OpenGL émulé, avec CPU à 99 % et forte pression mémoire. Waze et le cadre n’étaient pas lancés. Le symptôme avait déjà été conservé dans les preuves 0.5.1. L’émulateur final a reçu 4 Gio de mémoire après vérification de la capacité disponible du runner, en gardant le démarrage à froid, les délais et les contrôles ANR/PID. Le dernier contrôle de 37,322 secondes a réussi ; il ne démontre pas la disparition de ce problème sur tous les appareils."
+  ]
+}

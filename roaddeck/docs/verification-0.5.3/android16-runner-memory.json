@@ -1,0 +1,7 @@
+{
+  "api": 36,
+  "host_available_mib": 14996,
+  "guest_ram_mib": 4096,
+  "cold_start_preserved": true,
+  "anr_checks_preserved": true
+}

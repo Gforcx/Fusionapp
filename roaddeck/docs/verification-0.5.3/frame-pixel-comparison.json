@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "size": [
+    1280,
+    720
+  ],
+  "navigation_bounds": {
+    "left": 0,
+    "top": 24,
+    "right": 635,
+    "bottom": 672
+  },
+  "frame_insets_dp": {
+    "left": 12,
+    "top": 12,
+    "right": 12,
+    "bottom": 12
+  },
+  "four_visible_sides": {
+    "left": {
+      "sample_box": [
+        2,
+        64,
+        10,
+        632
+      ],
+      "dark_surround_fraction": 1.0,
+      "changed_fraction": 1.0
+    },
+    "right": {
+      "sample_box": [
+        625,
+        64,
+        633,
+        632
+      ],
+      "dark_surround_fraction": 1.0,
+      "changed_fraction": 1.0
+    },
+    "top": {
+      "sample_box": [
+        40,
+        26,
+        595,
+        34
+      ],
+      "dark_surround_fraction": 1.0,
+      "changed_fraction": 1.0
+    },
+    "bottom": {
+      "sample_box": [
+        40,
+        662,
+        595,
+        670
+      ],
+      "dark_surround_fraction": 1.0,
+      "changed_fraction": 1.0
+    }
+  },
+  "central_changed_fraction": 0.0,
+  "frame_navigation_painted_pixels": 32934,
+  "on_sha256": "7796800a2b257adf8929c3751717cdf22e3731756241f53f952f20981aaa1000",
+  "off_sha256": "800f6b5c322a9bc206d3e579985ad4796540e89ca9d163d45d0e76f505ef3321",
+  "scope": "Unmodified emulator screenshots of a separate test navigation app. Eight-pixel-wide strips on all four sides changed; the central viewport stayed unchanged. Real Waze and the head unit are not tested here."
+}

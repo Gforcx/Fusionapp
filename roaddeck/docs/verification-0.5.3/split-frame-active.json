@@ -1,0 +1,148 @@
+{
+  "mode": "split",
+  "active": true,
+  "requested": false,
+  "accessibilityGranted": true,
+  "serviceConnected": true,
+  "splitActionAvailability": "unknown",
+  "message": "Waze à gauche, RoadDeck à droite.",
+  "state": "RUNNING",
+  "failureStage": "",
+  "dividerObserved": true,
+  "screenWidth": 1280,
+  "screenHeight": 720,
+  "phaseElapsedMs": 4988,
+  "phaseSamples": 10,
+  "waitCondition": true,
+  "waitReason": "confirming complete pair",
+  "stableSamples": 2,
+  "scanDurationMs": 7,
+  "getWindowsDurationMs": 1,
+  "ownerQueriesPending": 0,
+  "unknownOwners": 0,
+  "ownerQueryCount": 5,
+  "lastRootDurationMs": 57,
+  "maximumRootDurationMs": 972,
+  "lastToggleDurationMs": 1,
+  "dividerCovered": false,
+  "frameEnabled": true,
+  "frameVisible": true,
+  "frameGeometryAuthoritative": true,
+  "frameStatus": "Habillage dessiné autour de Waze.",
+  "frameInsets": {
+    "left": 12,
+    "top": 12,
+    "right": 12,
+    "bottom": 12
+  },
+  "framePaintedPixels": 44542,
+  "frameNavigationPaintedPixels": 32934,
+  "framePreview": false,
+  "frameRevision": 2,
+  "frameDrawnRevision": 2,
+  "frameObstructionReason": "",
+  "frameExclusionCount": 7,
+  "frameRegionallyExcludedWindows": 2,
+  "frameIgnoredBelowPair": 0,
+  "frameAmbiguousSystemWindows": 0,
+  "frameBarInsetsObserved": true,
+  "frameMaxInsetPx": 32,
+  "framePlacementFallback": false,
+  "decorationObstructed": false,
+  "frameBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "frameNavigationBounds": {
+    "left": 0,
+    "top": 24,
+    "right": 635,
+    "bottom": 672
+  },
+  "framePanelBounds": {
+    "left": 645,
+    "top": 24,
+    "right": 1280,
+    "bottom": 672
+  },
+  "frameRequestedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "framePlacedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "frameExclusions": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 0,
+      "top": 672,
+      "right": 635,
+      "bottom": 720
+    },
+    {
+      "left": 645,
+      "top": 672,
+      "right": 1280,
+      "bottom": 720
+    },
+    {
+      "left": 635,
+      "top": 672,
+      "right": 645,
+      "bottom": 720
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "right": 635,
+      "bottom": 24
+    },
+    {
+      "left": 645,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 635,
+      "top": 0,
+      "right": 645,
+      "bottom": 24
+    }
+  ],
+  "wazeBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 635,
+    "bottom": 720
+  },
+  "panelBounds": {
+    "left": 645,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "testNote": "surround drawn over unchanged native windows",
+  "fixture": true,
+  "api": 29,
+  "realWazeTested": false,
+  "fixtureContentBounds": {
+    "left": 0,
+    "top": 24,
+    "right": 635,
+    "bottom": 672
+  }
+}

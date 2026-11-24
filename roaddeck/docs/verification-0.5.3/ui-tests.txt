@@ -1,0 +1,4 @@
+app.js: ES2019 syntax PASS (Acorn 8.18.0)
+overlay.js: ES2019 syntax PASS (Acorn 8.18.0)
+PASS: 23 targeted UI compatibility assertions; DOM/Android bridge simulated, no browser or device used.
+PASS: 110 split/compact-settings assertions; DOM/Android bridge simulated, no browser or device used.

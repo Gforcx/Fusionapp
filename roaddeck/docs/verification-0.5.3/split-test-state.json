@@ -1,0 +1,88 @@
+{
+  "mode": "split",
+  "active": false,
+  "requested": false,
+  "accessibilityGranted": true,
+  "serviceConnected": true,
+  "splitActionAvailability": "unknown",
+  "message": "Panneau fermé. Waze est affiché en plein écran.",
+  "state": "IDLE",
+  "failureStage": "",
+  "dividerObserved": false,
+  "screenWidth": 1280,
+  "screenHeight": 720,
+  "phaseElapsedMs": 4946,
+  "phaseSamples": 24,
+  "waitCondition": true,
+  "waitReason": "divider=false, WazeFocused=true, panelFocused=false, panelVisible=false",
+  "stableSamples": 2,
+  "scanDurationMs": 31,
+  "getWindowsDurationMs": 30,
+  "ownerQueriesPending": 0,
+  "unknownOwners": 0,
+  "ownerQueryCount": 8,
+  "lastRootDurationMs": 81,
+  "maximumRootDurationMs": 972,
+  "lastToggleDurationMs": 14,
+  "dividerCovered": false,
+  "frameEnabled": true,
+  "frameVisible": false,
+  "frameGeometryAuthoritative": false,
+  "frameStatus": "Habillage en attente du partage Waze \/ RoadDeck.",
+  "frameInsets": {
+    "left": 12,
+    "top": 12,
+    "right": 12,
+    "bottom": 12
+  },
+  "framePaintedPixels": 0,
+  "frameNavigationPaintedPixels": 0,
+  "framePreview": false,
+  "frameRevision": -1,
+  "frameDrawnRevision": -1,
+  "frameObstructionReason": "",
+  "frameExclusionCount": 1,
+  "frameRegionallyExcludedWindows": 0,
+  "frameIgnoredBelowPair": 0,
+  "frameAmbiguousSystemWindows": 0,
+  "frameBarInsetsObserved": true,
+  "frameMaxInsetPx": 0,
+  "framePlacementFallback": false,
+  "decorationObstructed": false,
+  "frameRequestedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "framePlacedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "frameExclusions": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    }
+  ],
+  "wazeBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "testNote": "instrumentation finished",
+  "fixture": true,
+  "api": 29,
+  "realWazeTested": false,
+  "fixtureContentBounds": {
+    "left": 0,
+    "top": 24,
+    "right": 635,
+    "bottom": 672
+  }
+}

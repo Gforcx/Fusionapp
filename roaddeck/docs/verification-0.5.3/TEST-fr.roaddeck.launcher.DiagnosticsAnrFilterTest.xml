@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="fr.roaddeck.launcher.DiagnosticsAnrFilterTest" tests="1" skipped="0" failures="0" errors="0" timestamp="2026-11-24T16:35:05" hostname="runnervm0hi8g" time="0.04">
+  <properties/>
+  <testcase name="filtersOwnMainAndRenderThreadFrames" classname="fr.roaddeck.launcher.DiagnosticsAnrFilterTest" time="0.04"/>
+  <system-out><![CDATA[PASS: 24 assertions on the production ANR parser; synthetic ART trace fixtures.
+]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

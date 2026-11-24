@@ -1,0 +1,794 @@
+{
+  "schema": 1,
+  "package": "fr.roaddeck.launcher",
+  "component": "fr.roaddeck.launcher/fr.roaddeck.launcher.SplitScreenService",
+  "startedAtUtc": "2026-11-24T16:27:31.524430+00:00",
+  "instrumentationUsed": false,
+  "uiAutomationUsed": false,
+  "wazeLaunched": false,
+  "productionModified": false,
+  "platformOnly": true,
+  "status": "failed",
+  "api": "36",
+  "buildFingerprint": "google/sdk_gphone64_x86_64/emu64xa:16/BE2A.250530.026.F3/13894323:userdebug/dev-keys",
+  "userId": "0",
+  "initialPackageStopped": true,
+  "cataloguePrecondition": {
+    "passed": true,
+    "durationLimitSeconds": 20,
+    "queryFlags": 819332,
+    "scope": "Known API 36 emulator catalogue; count agreement is not a universal OEM guarantee.",
+    "samples": [
+      {
+        "seconds": 3.79,
+        "pmReturncode": 0,
+        "accessibilityReturncode": 0,
+        "packageManager": {
+          "formatRecognized": true,
+          "components": [
+            "com.android.systemui.accessibility.accessibilitymenu/com.android.systemui.accessibility.accessibilitymenu.AccessibilityMenuService",
+            "com.google.android.accessibility.switchaccess/com.android.switchaccess.SwitchAccessService",
+            "com.google.android.apps.accessibility.voiceaccess/com.google.android.apps.accessibility.voiceaccess.JustSpeakService",
+            "com.google.android.marvin.talkback/com.google.android.accessibility.selecttospeak.SelectToSpeakService",
+            "com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService",
+            "fr.roaddeck.launcher/fr.roaddeck.launcher.SplitScreenService"
+          ],
+          "count": 6,
+          "targetPresent": true
+        },
+        "installedServiceCount": 6,
+        "concordant": true,
+        "consecutiveMatchingSamples": 1
+      },
+      {
+        "seconds": 5.127,
+        "pmReturncode": 0,
+        "accessibilityReturncode": 0,
+        "packageManager": {
+          "formatRecognized": true,
+          "components": [
+            "com.android.systemui.accessibility.accessibilitymenu/com.android.systemui.accessibility.accessibilitymenu.AccessibilityMenuService",
+            "com.google.android.accessibility.switchaccess/com.android.switchaccess.SwitchAccessService",
+            "com.google.android.apps.accessibility.voiceaccess/com.google.android.apps.accessibility.voiceaccess.JustSpeakService",
+            "com.google.android.marvin.talkback/com.google.android.accessibility.selecttospeak.SelectToSpeakService",
+            "com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService",
+            "fr.roaddeck.launcher/fr.roaddeck.launcher.SplitScreenService"
+          ],
+          "count": 6,
+          "targetPresent": true
+        },
+        "installedServiceCount": 6,
+        "concordant": true,
+        "consecutiveMatchingSamples": 2
+      }
+    ],
+    "last": {
+      "seconds": 5.127,
+      "pmReturncode": 0,
+      "accessibilityReturncode": 0,
+      "packageManager": {
+        "formatRecognized": true,
+        "components": [
+          "com.android.systemui.accessibility.accessibilitymenu/com.android.systemui.accessibility.accessibilitymenu.AccessibilityMenuService",
+          "com.google.android.accessibility.switchaccess/com.android.switchaccess.SwitchAccessService",
+          "com.google.android.apps.accessibility.voiceaccess/com.google.android.apps.accessibility.voiceaccess.JustSpeakService",
+          "com.google.android.marvin.talkback/com.google.android.accessibility.selecttospeak.SelectToSpeakService",
+          "com.google.android.marvin.talkback/com.google.android.marvin.talkback.TalkBackService",
+          "fr.roaddeck.launcher/fr.roaddeck.launcher.SplitScreenService"
+        ],
+        "count": 6,
+        "targetPresent": true
+      },
+      "installedServiceCount": 6,
+      "concordant": true,
+      "consecutiveMatchingSamples": 2
+    }
+  },
+  "activationCommandsSucceeded": true,
+  "activationReadback": {
+    "enabledServices": "fr.roaddeck.launcher/fr.roaddeck.launcher.SplitScreenService",
+    "enabledServicesReturncode": 0,
+    "targetPresent": true,
+    "accessibilityEnabled": "1",
+    "accessibilityEnabledReturncode": 0
+  },
+  "phase1": {
+    "bound": true,
+    "samples": [
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": false,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [],
+        "currentUserBlocks": 0,
+        "seconds": 6.98,
+        "pids": [],
+        "adbReturncode": 0,
+        "pidReturncode": 1
+      },
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": false,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [],
+        "currentUserBlocks": 0,
+        "seconds": 8.338,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      },
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": false,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [],
+        "currentUserBlocks": 0,
+        "seconds": 8.998,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      },
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": false,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [],
+        "currentUserBlocks": 0,
+        "seconds": 9.666,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      },
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": false,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [],
+        "currentUserBlocks": 0,
+        "seconds": 10.344,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      },
+      {
+        "healthy": false,
+        "formatRecognized": true,
+        "boundLabel": true,
+        "configuredNotificationTimeout100": false,
+        "enabled": true,
+        "binding": true,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [
+          "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=80, requestA11yBtn=false"
+        ],
+        "currentUserBlocks": 0,
+        "seconds": 11.054,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      },
+      {
+        "healthy": true,
+        "formatRecognized": true,
+        "boundLabel": true,
+        "configuredNotificationTimeout100": true,
+        "enabled": true,
+        "binding": false,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [
+          "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+        ],
+        "currentUserBlocks": 0,
+        "seconds": 11.863,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      }
+    ],
+    "last": {
+      "healthy": true,
+      "formatRecognized": true,
+      "boundLabel": true,
+      "configuredNotificationTimeout100": true,
+      "enabled": true,
+      "binding": false,
+      "frameworkCrashed": false,
+      "crashedSectionPresent": true,
+      "boundEntries": [
+        "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+      ],
+      "currentUserBlocks": 0,
+      "seconds": 11.863,
+      "pids": [
+        "2269"
+      ],
+      "adbReturncode": 0,
+      "pidReturncode": 0
+    },
+    "packageStoppedAtEnd": false
+  },
+  "phase2": {
+    "bound": true,
+    "samples": [
+      {
+        "healthy": true,
+        "formatRecognized": true,
+        "boundLabel": true,
+        "configuredNotificationTimeout100": true,
+        "enabled": true,
+        "binding": false,
+        "frameworkCrashed": false,
+        "crashedSectionPresent": true,
+        "boundEntries": [
+          "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+        ],
+        "currentUserBlocks": 0,
+        "seconds": 15.982,
+        "pids": [
+          "2269"
+        ],
+        "adbReturncode": 0,
+        "pidReturncode": 0
+      }
+    ],
+    "last": {
+      "healthy": true,
+      "formatRecognized": true,
+      "boundLabel": true,
+      "configuredNotificationTimeout100": true,
+      "enabled": true,
+      "binding": false,
+      "frameworkCrashed": false,
+      "crashedSectionPresent": true,
+      "boundEntries": [
+        "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+      ],
+      "currentUserBlocks": 0,
+      "seconds": 15.982,
+      "pids": [
+        "2269"
+      ],
+      "adbReturncode": 0,
+      "pidReturncode": 0
+    },
+    "expectedPid": "2269",
+    "mainLaunchReturncode": 0,
+    "mainObservation": {
+      "durationRequestedSeconds": 5,
+      "passed": true,
+      "samples": [
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 16.249,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 16.881,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 17.801,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 19.355,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 20.028,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 20.934,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 21.206,
+          "pids": [
+            "2269"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": true
+        }
+      ]
+    },
+    "settingsLaunchReturncode": 0,
+    "settingsObservation": {
+      "durationRequestedSeconds": 5,
+      "passed": false,
+      "samples": [
+        {
+          "healthy": false,
+          "formatRecognized": true,
+          "boundLabel": false,
+          "configuredNotificationTimeout100": false,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": true,
+          "crashedSectionPresent": true,
+          "boundEntries": [],
+          "currentUserBlocks": 0,
+          "seconds": 31.464,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": false,
+          "formatRecognized": true,
+          "boundLabel": false,
+          "configuredNotificationTimeout100": false,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": true,
+          "crashedSectionPresent": true,
+          "boundEntries": [],
+          "currentUserBlocks": 0,
+          "seconds": 32.369,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": false,
+          "formatRecognized": true,
+          "boundLabel": false,
+          "configuredNotificationTimeout100": false,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": true,
+          "crashedSectionPresent": true,
+          "boundEntries": [],
+          "currentUserBlocks": 0,
+          "seconds": 33.344,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": false,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": true,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 34.218,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 35.142,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 36.472,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 36.797,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        }
+      ]
+    },
+    "returnMainLaunchReturncode": 0,
+    "returnObservation": {
+      "durationRequestedSeconds": 5,
+      "passed": false,
+      "samples": [
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 43.063,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 43.868,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 44.564,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 45.271,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 46.696,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        },
+        {
+          "healthy": true,
+          "formatRecognized": true,
+          "boundLabel": true,
+          "configuredNotificationTimeout100": true,
+          "enabled": true,
+          "binding": false,
+          "frameworkCrashed": false,
+          "crashedSectionPresent": true,
+          "boundEntries": [
+            "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+          ],
+          "currentUserBlocks": 0,
+          "seconds": 46.795,
+          "pids": [
+            "3360"
+          ],
+          "adbReturncode": 0,
+          "pidReturncode": 0,
+          "expectedPidMatches": false
+        }
+      ]
+    },
+    "passed": false
+  },
+  "debugEvidence": {
+    "activity-lastanr": {
+      "returncode": 0
+    },
+    "activity-exit-info": {
+      "returncode": 0
+    },
+    "gfxinfo-framestats": {
+      "returncode": 0
+    },
+    "cpuinfo": {
+      "returncode": 0
+    },
+    "memory-info": {
+      "returncode": 0
+    },
+    "pressure-cpu": {
+      "returncode": 1
+    },
+    "pressure-memory": {
+      "returncode": 1
+    },
+    "pressure-io": {
+      "returncode": 1
+    },
+    "dropbox-data-app-anr": {
+      "returncode": 0
+    },
+    "dropbox-system-app-anr": {
+      "returncode": 0
+    },
+    "anr-directory": {
+      "returncode": 0
+    },
+    "anr-traces": {
+      "returncode": 1
+    },
+    "screenshot": {
+      "returncode": 0,
+      "pngHeader": true
+    }
+  },
+  "javaFatalExceptionObserved": false,
+  "nativeFatalMarkerObserved": false,
+  "applicationAnrObserved": true,
+  "finalBinding": {
+    "healthy": true,
+    "formatRecognized": true,
+    "boundLabel": true,
+    "configuredNotificationTimeout100": true,
+    "enabled": true,
+    "binding": false,
+    "frameworkCrashed": false,
+    "crashedSectionPresent": true,
+    "boundEntries": [
+      "label=RoadDeck — écran partagé, feedbackType[FEEDBACK_GENERIC], capabilities=1, eventTypes=[TYPE_WINDOW_STATE_CHANGED, TYPE_WINDOWS_CHANGED], notificationTimeout=100, requestA11yBtn=false"
+    ],
+    "currentUserBlocks": 0
+  },
+  "finalPidStable": false,
+  "elapsedSeconds": 58.855,
+  "finishedAtUtc": "2026-11-24T16:28:30.379834+00:00",
+  "evidenceDirectory": "/home/runner/work/Fusionapp/Fusionapp/roaddeck/service-evidence"
+}
