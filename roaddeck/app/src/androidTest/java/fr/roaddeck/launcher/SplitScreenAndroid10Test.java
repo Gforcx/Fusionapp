@@ -11,6 +11,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.SystemClock;
@@ -159,9 +162,12 @@ public final class SplitScreenAndroid10Test {
         await("MainActivity visible in landscape", 15000,
                 () -> findActivity(MainActivity.class) != null && device.getDisplayWidth() > device.getDisplayHeight());
         final int mainTask = taskId(main);
-        AtomicBoolean accepted = new AtomicBoolean();
-        instrumentation.runOnMainSync(() -> accepted.set(SplitScreenService.begin(main)));
-        assertTrue("Split request rejected: " + snapshot(), accepted.get());
+        await("launch button is rendered before the user's first touch", 15000, () -> {
+            JSONObject page = readDomElement(main, "launchWaze");
+            return page.optBoolean("visible") && page.optBoolean("hit")
+                    && page.optBoolean("visualStateReady") && "BUTTON".equals(page.optString("tag"));
+        });
+        tapPanelButton(main, "launchWaze", "Afficher Waze à gauche");
         // The engine can spend 55 seconds resolving an OEM's initial split orientation.
         await("native split active", 65000, () -> {
             JSONObject state = snapshot();
@@ -184,8 +190,14 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Unified frame is enabled by default", snapshot().optBoolean("frameEnabled"));
         assertRectNear("Frame window follows the actual split pair", union(navigation, side),
                 snapshotRect("frameBounds"));
-        assertTrue("Decoration remains a thin edge, not a crop of the navigation viewport",
-                snapshot().optInt("frameMaxInsetPx", Integer.MAX_VALUE) <= 8);
+        JSONObject insets = snapshot().getJSONObject("frameInsets");
+        for (String edge : new String[]{"left", "top", "right", "bottom"})
+            assertEquals("Default surround margin in dp: " + edge, 12, insets.getInt(edge));
+        assertTrue("The left frame must have a substantial nonempty painted region",
+                snapshot().optLong("frameNavigationPaintedPixels") > navigation.height() * 10L);
+        assertEquals("Visibility requires an onDraw of this geometry",
+                snapshot().getInt("frameRevision"), snapshot().getInt("frameDrawnRevision"));
+        assertFalse("The preview must never start automatically", snapshot().optBoolean("framePreview"));
         assertFourCorners(navigation, 0);
         for (int i = 0; i < CORNERS.length; i++) {
             corner(i).click();
@@ -194,8 +206,21 @@ public final class SplitScreenAndroid10Test {
                     () -> (NAMES[index] + " : 1").equals(corner(index).getText()));
         }
         assertFourCorners(navigation, 1);
-        assertTrue("Failed to save split screenshot", device.takeScreenshot(
-                new File(evidenceDirectory(), "split-android10.png")));
+        await("frame drawn again after navigation touches", 5000,
+                () -> snapshot().optBoolean("frameVisible"));
+        File framedScreenshot = new File(evidenceDirectory(), "split-android10.png");
+        await("actual surround pixels in the composed screenshot", 5000, () -> {
+            if (!device.takeScreenshot(framedScreenshot)) return false;
+            Bitmap image = BitmapFactory.decodeFile(framedScreenshot.getAbsolutePath());
+            if (image == null) return false;
+            boolean visible = isFrameColor(image.getPixel(navigation.left + 5, navigation.centerY()))
+                    && isFrameColor(image.getPixel(navigation.right - 6, navigation.centerY()))
+                    && isFrameColor(image.getPixel(navigation.centerX(), navigation.top + 5))
+                    && isFrameColor(image.getPixel(navigation.centerX(), navigation.bottom - 6));
+            image.recycle();
+            return visible;
+        });
+        writeNamedState("split-frame-active.json", "surround drawn over unchanged native windows");
 
         // Changing only the decoration must not relaunch, enlarge or shift either app.
         setFrameEnabled(false);
@@ -204,12 +229,31 @@ public final class SplitScreenAndroid10Test {
         assertTrue("Native pair remains active without decoration", snapshot().optBoolean("active"));
         assertRectNear("Disabling the frame preserves navigation size", navigation,
                 awaitWindow(NAVIGATION, 5000));
-        assertTrue("Failed to save undecorated split screenshot", device.takeScreenshot(
-                new File(evidenceDirectory(), "split-frame-disabled.png")));
+        File plainScreenshot = new File(evidenceDirectory(), "split-frame-disabled.png");
+        await("compositor removed the surround", 5000, () -> {
+            if (!device.takeScreenshot(plainScreenshot)) return false;
+            Bitmap image = BitmapFactory.decodeFile(plainScreenshot.getAbsolutePath());
+            if (image == null) return false;
+            boolean removed = !isFrameColor(image.getPixel(navigation.left + 5, navigation.centerY()));
+            image.recycle();
+            return removed;
+        });
+        assertSubstantialSurround(framedScreenshot, plainScreenshot, navigation);
         setFrameEnabled(true);
         await("unified frame restored", 5000, () -> snapshot().optBoolean("frameVisible"));
         assertRectNear("Restoring the frame preserves navigation size", navigation,
                 awaitWindow(NAVIGATION, 5000));
+
+        clearAutomationNodeCache();
+        final Activity previewHost = panel;
+        instrumentation.runOnMainSync(() -> SplitScreenService.previewFrame(previewHost));
+        await("explicit five-second preview", 3000,
+                () -> snapshot().optBoolean("framePreview") && snapshot().optBoolean("frameVisible"));
+        assertTrue("Failed to save preview screenshot", device.takeScreenshot(
+                new File(evidenceDirectory(), "split-frame-preview.png")));
+        await("preview is removed automatically", 7000, () -> !snapshot().optBoolean("framePreview"));
+        await("surround remains after preview", 5000, () -> snapshot().optBoolean("frameVisible"));
+        assertRectNear("The preview must not move navigation", navigation, awaitWindow(NAVIGATION, 5000));
 
         tapPanelButton(panel, "settings", "Réglages");
         PanelSettingsActivity settings = awaitActivity(PanelSettingsActivity.class, 15000);
@@ -267,7 +311,58 @@ public final class SplitScreenAndroid10Test {
                     () -> (NAMES[index] + " : 2").equals(corner(index).getText()));
         }
         assertFourCorners(fullScreen, 2);
-        writeState("passed: fixture windows, thin non-touchable frame, toggle without resize, corner clicks, settings task, fullscreen return");
+        writeState("passed: fixture windows, visible 12dp surround, toggle without resize, corner clicks, preview expiry, settings task, fullscreen return");
+    }
+
+    private boolean isFrameColor(int color) {
+        return Math.abs(Color.red(color) - 12) <= 3
+                && Math.abs(Color.green(color) - 16) <= 3 && Math.abs(Color.blue(color) - 32) <= 3;
+    }
+
+    /** The compositor capture, not frameVisible alone, proves a wide visible surround. */
+    private void assertSubstantialSurround(File onFile, File offFile, Rect navigation) {
+        Bitmap on = BitmapFactory.decodeFile(onFile.getAbsolutePath());
+        Bitmap off = BitmapFactory.decodeFile(offFile.getAbsolutePath());
+        assertNotNull("Framed capture is readable", on);
+        assertNotNull("Plain capture is readable", off);
+        try {
+            assertEquals(on.getWidth(), off.getWidth());
+            assertEquals(on.getHeight(), off.getHeight());
+            // Stay clear of rounded corners and compare eight full columns/rows,
+            // so the old two-pixel contour cannot pass this regression test.
+            Rect[] strips = {
+                    new Rect(navigation.left + 2, navigation.top + 40, navigation.left + 10, navigation.bottom - 40),
+                    new Rect(navigation.right - 10, navigation.top + 40, navigation.right - 2, navigation.bottom - 40),
+                    new Rect(navigation.left + 40, navigation.top + 2, navigation.right - 40, navigation.top + 10),
+                    new Rect(navigation.left + 40, navigation.bottom - 10, navigation.right - 40, navigation.bottom - 2)};
+            for (int side = 0; side < strips.length; side++) {
+                Rect strip = strips[side];
+                int changed = 0, dark = 0;
+                for (int y = strip.top; y < strip.bottom; y++)
+                    for (int x = strip.left; x < strip.right; x++) {
+                        int a = on.getPixel(x, y), b = off.getPixel(x, y);
+                        if (isFrameColor(a)) dark++;
+                        if (Math.abs(Color.red(a) - Color.red(b))
+                                + Math.abs(Color.green(a) - Color.green(b))
+                                + Math.abs(Color.blue(a) - Color.blue(b)) >= 20) changed++;
+                    }
+                int area = strip.width() * strip.height();
+                assertTrue("A substantial dark surround must be visible on side " + side,
+                        dark > area * 0.90);
+                assertTrue("The surround must change at least eight pixels of width on side " + side,
+                        changed > area * 0.90);
+            }
+            Rect center = new Rect(navigation);
+            center.inset(48, 80);
+            int changed = 0;
+            for (int y = center.top; y < center.bottom; y++)
+                for (int x = center.left; x < center.right; x++)
+                    if (on.getPixel(x, y) != off.getPixel(x, y)) changed++;
+            assertTrue("The center of the native navigation surface must stay visible and unchanged",
+                    changed < center.width() * center.height() * 0.01);
+        } finally {
+            on.recycle(); off.recycle();
+        }
     }
 
     private Rect union(Rect first, Rect second) {
@@ -405,8 +500,9 @@ public final class SplitScreenAndroid10Test {
                         }
                         page.put("callbackDelayMs", SystemClock.uptimeMillis() - requestedAt);
                         probe.result.set(page);
-                        if ("dialogTitle".equals(id) && page.optBoolean("panelSettings")
-                                && page.optBoolean("visible") && "Réglages".equals(page.optString("text"))) {
+                        if (page.optBoolean("visible") && (("dialogTitle".equals(id)
+                                && page.optBoolean("panelSettings") && "Réglages".equals(page.optString("text")))
+                                || ("launchWaze".equals(id) && "BUTTON".equals(page.optString("tag"))))) {
                             probe.phase = "waiting for visual state acknowledgement";
                             web.postVisualStateCallback(requestedAt, new WebView.VisualStateCallback() {
                                 @Override public void onComplete(long requestId) {
@@ -589,10 +685,14 @@ public final class SplitScreenAndroid10Test {
     }
 
     private void writeState(String note) {
+        writeNamedState("split-test-state.json", note);
+    }
+
+    private void writeNamedState(String name, String note) {
         try {
             JSONObject state = snapshot().put("testNote", note).put("fixture", true)
                     .put("api", Build.VERSION.SDK_INT).put("realWazeTested", false);
-            try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), "split-test-state.json"))) {
+            try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), name))) {
                 output.write(state.toString(2).getBytes(StandardCharsets.UTF_8));
             }
         } catch (Exception error) {

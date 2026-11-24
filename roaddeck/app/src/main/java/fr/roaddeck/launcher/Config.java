@@ -26,6 +26,7 @@ final class Config {
         defaults(j, "musicPackage", "com.spotify.music");
         defaults(j, "musicName", "Spotify");
         j.put("wazeMode", "split"); defaults(j, "wazeAuto", false); defaults(j, "splitFrame", true);
+        for (String k : Core.list("frameLeft", "frameTop", "frameRight", "frameBottom")) defaults(j, k, 12);
         defaults(j, "overlayWidth", 34);
         defaults(j, "keepScreen", true); defaults(j, "gateConfirm", true);
         defaults(j, "radioBuffer", 15); defaults(j, "tuyaEndpoint", "https://openapi.tuyaeu.com");
@@ -60,6 +61,8 @@ final class Config {
             old.put(k, value);
         }
         for (String k : bools) if (input.has(k)) old.put(k, input.optBoolean(k));
+        for (String k : Core.list("frameLeft", "frameTop", "frameRight", "frameBottom"))
+            if (input.has(k)) old.put(k, Core.clamp(input.optInt(k, 12), 0, 40));
         if (input.has("overlayWidth")) old.put("overlayWidth", OverlayGeometry.percent(input.optInt("overlayWidth",34)));
         if (input.has("radioBuffer")) old.put("radioBuffer", Core.bufferSeconds(input.optInt("radioBuffer",15)));
         for (String k : Core.list("wazeOffsetX","wazeOffsetY","wazeWidthDelta","wazeHeightDelta"))

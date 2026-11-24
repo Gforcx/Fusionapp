@@ -1,7 +1,7 @@
-# RoadDeck 0.5.0 — Waze redimensionné
+# RoadDeck 0.5.3 — cadre autour de Waze
 
-Application Android paysage, package `fr.roaddeck.launcher`, versionCode 6,
-versionName `0.5.0-split`, Android 8 minimum. Cible de validation : Android 10.
+Application Android paysage, package `fr.roaddeck.launcher`, versionCode 9,
+versionName `0.5.3`, Android 8 minimum. Cible de validation : Android 10.
 
 ## Changement
 
@@ -12,8 +12,8 @@ est retiré du manifeste. L’autorisation « afficher par-dessus » n’est plu
 Un assistant d’accessibilité intégré demande le partage au système et vérifie les
 dimensions des deux applications avant d’annoncer que le partage fonctionne.
 Il lit les noms d’application et les limites des fenêtres ; il ne lit pas les
-messages et ne capture pas l’écran. Une petite surface non tactile peut remplir
-uniquement l’espace vide mesuré du séparateur. Elle ne redimensionne pas Waze.
+messages et ne capture pas l’écran. Une surface non tactile dessine un cadre autour de Waze et remplit
+l’espace vide mesuré du séparateur. Elle ne redimensionne pas Waze.
 
 Le micrologiciel de l’autoradio et Waze doivent accepter le partage natif.
 RoadDeck ne peut pas imposer ce support, ni garantir la disparition de toutes les
@@ -53,3 +53,15 @@ Waze, n’est pas intégrée à RoadDeck et n’est jamais livrée à l’utilis
 Les essais émulateur sont prévus pour vérifier le redimensionnement, les quatre
 coins tactiles, les réglages à droite et le retour au plein écran. Leur résultat
 n’est pas une preuve du fonctionnement de Waze réel sur l’autoradio du client.
+
+## Diagnostic du service
+
+Après un échec, ouvrir Réglages → Informations → Copier le diagnostic et coller le rapport dans la conversation. Aucun envoi automatique. La version0.5.1 corrige la distinction accord/connexion et réduit le travail de rendu des réglages ; elle ne revendique pas une panne HyperOS résolue.
+
+### ANR observée pendant les essais API36
+
+Le premier essai 0.5.1 (run CI 45164302888, commit 4c341ec6) a été interrompu par un arrêt du processus pour ANR de MainActivity. La cause interne reste à établir. Un passage ultérieur réussi sur l’émulateur ne prouve pas que cet arrêt a disparu sur Xiaomi/HyperOS. Voir docs/TESTS.md pour la portée des essais.
+
+## Habillage commun
+
+Activé par défaut dans Réglages → Waze → Habillage autour de Waze. Quatre marges de 12 dp, réglables de 0 à 40, entourent une ouverture arrondie transparente. Le fond sombre se raccorde au panneau droit. Les marges recouvrent les pixels périphériques de Waze ; la géométrie de sa fenêtre reste contrôlée par Android. Le bouton « Tester l’habillage (5 s) » affiche un repère temporaire dans la partie gauche. Voir docs/CHANGELOG-0.5.3.md et docs/TESTS.md.

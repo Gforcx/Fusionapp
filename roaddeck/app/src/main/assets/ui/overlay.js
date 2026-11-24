@@ -62,6 +62,13 @@
         const d=message.data||{};
         switch(message.type){
             case 'settings':Object.assign(state.settings,d);document.body.classList.toggle('unified-frame',state.settings.splitFrame!==false);render();weather();break;
+            case 'wazeState':
+                const frameText=typeof d.frameStatus==='string'?d.frameStatus.trim():'';
+                const emptyCurrentFrame=d.frameGeometryAuthoritative===true&&typeof d.frameDrawnRevision==='number'
+                    &&d.frameDrawnRevision>=0&&d.frameDrawnRevision===d.frameRevision&&d.frameNavigationPaintedPixels===0;
+                const blockedFrame=d.decorationObstructed===true||d.framePlacementFallback===true||emptyCurrentFrame;
+                $('panelFrameNotice').hidden=!(d.active===true&&d.frameEnabled===true&&d.frameVisible===false&&blockedFrame&&frameText);
+                setText('panelFrameStatus',frameText);$('panelFrameStatus').setAttribute('title',frameText);break;
             case 'state':state.music=d.music||{};state.radio=d.radio||{};if(state.radio.wanted&&!state.touched)state.tab='radio';render();break;
             case 'favorites':state.favorites=Array.isArray(d)?d:[];break;
             case 'weather':state.weather=d;weather();break;

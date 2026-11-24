@@ -141,6 +141,7 @@ public class MainActivity extends Activity {
             case "notificationAccess": startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));break;
             case "wazeSetup": requestSplitSetup();break;
             case "wazeClose": SplitScreenService.closePair(this);emit("wazeState",overlaySnapshot());break;
+            case "framePreview": SplitScreenService.previewFrame(this);emit("wazeState",overlaySnapshot());break;
             case "closePanelSettings": if(isPanelSettings())finish();break;
             case "wazeBack": toast("Utilisez le bouton Retour d’Android dans Waze.");break;
             case "wazeLayout": case "overlay": break; // Legacy UI commands do not control Waze's window.

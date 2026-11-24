@@ -16,8 +16,14 @@ check(!html.includes('name="overlayWidth"'), 'No fake application-owned split pe
 check(html.includes('Activer l’assistant d’écran partagé'), 'Accessibility setup action is explained');
 check(html.includes('Android contrôle la séparation'), 'System-controlled divider is disclosed');
 check(!/par-dessus|sans bordure|mode overlay/.test(html), 'No obsolete overlay or borderless promise');
-check(html.includes('RoadDeck 0.5.2') && panelHtml.includes('RoadDeck 0.5.2'), 'Version labels agree');
-check(html.includes('type="checkbox" name="splitFrame">Habillage commun'), 'Shared frame can be disabled from Waze settings');
+check(html.includes('RoadDeck 0.5.3') && panelHtml.includes('RoadDeck 0.5.3'), 'Version labels agree');
+check(html.includes('type="checkbox" name="splitFrame">Habillage autour de Waze'), 'Shared frame can be disabled from Waze settings');
+for (const field of ['frameLeft','frameTop','frameRight','frameBottom']) {
+    check(html.includes('type="number" name="'+field+'" min="0" max="40" step="1" required'), 'Bounded margin input: ' + field);
+}
+check(html.includes('Les marges recouvrent les bords de Waze. La carte garde la taille attribuée par Android.'), 'Covered map edges are disclosed without promising a resized window');
+check(html.includes('data-act="framePreview">Tester l’habillage (5 s)'), 'Five-second frame preview requires an explicit button');
+check(html.includes('id="frameStatus" class="note" aria-live="polite"'), 'Native frame status has its own accessible settings field');
 check(panelHtml.includes('‹ Waze en grand'), 'Sidebar collapse wording describes fullscreen navigation');
 check(css.includes('.panel-settings .two-cols{grid-template-columns:minmax(0,1fr)'), 'Compact settings form has one column');
 check(css.includes('.panel-settings>:not(.overlay):not(.toast){display:none!important}'), 'Compact mode hides the launcher background');
@@ -53,6 +59,15 @@ check(compact.calls[compact.calls.length-1].type === 'wazeSetup', 'Setup asks na
 rd.receive({type:'wazeState', data:{mode:'split',active:false,requested:true,accessibilityGranted:false,message:'Activez l’assistant RoadDeck.'}});
 check(compact.get('wazeHint').textContent === 'Activez l’assistant RoadDeck.' && compact.get('wazeSetupStatus').textContent === 'Activez l’assistant RoadDeck.', 'Native split status appears on home and setup');
 check(compact.get('wazeTools').hidden === false, 'Pending split controls stay available');
+const frameUnavailable = 'Habillage non dessiné : limites de Waze indisponibles.';
+rd.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameStatus:frameUnavailable}});
+check(compact.get('frameStatus').textContent === frameUnavailable, 'Settings show the exact native frame status');
+rd.receive({type:'settings',data:{splitFrame:true}});
+check(compact.get('frameStatus').textContent === frameUnavailable, 'An enabled preference never claims that the frame is visible');
+rd.receive({type:'wazeState',data:{frameVisible:true,frameStatus:{message:'not a status'}}});
+check(compact.get('frameStatus').textContent === 'Habillage : état non déterminé.', 'Malformed frame status remains unknown');
+rd.receive({type:'wazeState',data:{frameEnabled:true}});
+check(compact.get('frameStatus').textContent === 'Habillage : état non déterminé.', 'Missing frame status remains unknown even when enabled');
 rd.receive({type:'diagnostics',data:{sdk:29,android:'10',accessibilityGranted:true,accessibilityConnected:true,wazePanel:{mode:'split',active:true,requested:false,message:'Écran partagé actif.'}}});
 const diagnostic = compact.get('diagnostics').textContent;
 check(diagnostic.includes('Mode : écran partagé') && diagnostic.includes('Autorisation d’accessibilité accordée : oui') && diagnostic.includes('Service d’accessibilité connecté : oui'), 'Diagnostics separate authorization and connection state');
@@ -81,19 +96,32 @@ rd.receive({type:'diagnostics',data:{accessibilityConnected:true,wazePanel:{spli
 check(compact.get('diagnostics').textContent.includes('Commande d’écran partagé : absente') && compact.get('diagnostics').textContent.includes('Service d’accessibilité connecté : oui'), 'Unavailable action does not imply a disconnected service');
 rd.receive({type:'diagnostics',data:{accessibilityConnected:true,wazePanel:{splitActionAvailability:'unknown'}}});
 check(compact.get('diagnostics').textContent.includes('Commande d’écran partagé : non déterminée'), 'Unknown API29 availability remains unknown');
+rd.receive({type:'diagnostics',data:{wazePanel:{frameEnabled:true,frameVisible:false,frameStatus:frameUnavailable}}});
+check(compact.get('diagnostics').textContent.includes(frameUnavailable) && compact.get('diagnostics').textContent.includes('Habillage visible : non'), 'Diagnostic preserves the native reason and observed visibility');
+rd.receive({type:'diagnostics',data:{wazePanel:{frameEnabled:true,frameStatus:{message:'not a status'}}}});
+check(compact.get('diagnostics').textContent.includes('Habillage : état non déterminé') && compact.get('diagnostics').textContent.includes('Habillage visible : non déterminé') && !compact.get('diagnostics').textContent.includes('[object Object]'), 'Diagnostic does not invent visibility from the enabled setting or malformed data');
 
 const frameInput = compact.get('settingsForm').elements.splitFrame;
 frameInput.name = 'splitFrame';frameInput.type = 'checkbox';
-compact.get('settingsForm').querySelectorAll = selector => selector === '[name]' ? [frameInput] : [];
+const marginInputs = ['frameLeft','frameTop','frameRight','frameBottom'].map(name => {
+    const input = compact.get('settingsForm').elements[name];
+    input.name = name;input.type = 'number';return input;
+});
+compact.get('settingsForm').querySelectorAll = selector => selector === '[name]' ? [frameInput].concat(marginInputs) : [];
 rd.receive({type:'settings',data:{splitFrame:true}});
 check(frameInput.checked === true, 'Saved enabled frame appears checked in the settings form');
+check(marginInputs.every(input => input.value === '12'), 'All four margin inputs default to 12');
 rd.receive({type:'settings',data:{splitFrame:false}});
 check(frameInput.checked === false, 'Saved disabled frame appears unchecked in the settings form');
+rd.receive({type:'settings',data:{frameLeft:0,frameTop:18,frameRight:40,frameBottom:27}});
+check(marginInputs.map(input => input.value).join(',') === '0,18,40,27', 'Saved margins including zero and maximum reappear in the form');
+check(!compact.calls.some(c => c.type === 'framePreview' || c.type === 'openWaze'), 'Settings, diagnostics and native frame updates never launch or preview silently');
 
 const before = compact.calls.length;
 compact.clickAction('testWaze');
 check(compact.calls[before].type === 'saveSettings' && compact.calls[before].data.wazeMode === 'split', 'Launch saves split mode first');
 check(compact.calls[before].data.splitFrame === false, 'Disabled decoration is saved as a boolean without changing split mode');
+check(marginInputs.every(input => typeof compact.calls[before].data[input.name] === 'number') && compact.calls[before].data.frameLeft === 0 && compact.calls[before].data.frameRight === 40, 'Margin values cross the Android bridge as numbers, preserving both bounds');
 check(!Object.prototype.hasOwnProperty.call(compact.calls[before].data,'overlayWidth'), 'No invented split ratio sent to Android');
 check(!compact.calls.slice(before).some(c => c.type === 'closePanelSettings'), 'Activity stays visible until native split launch');
 compact.flushTimeouts();
@@ -101,6 +129,20 @@ const launch = compact.calls[compact.calls.length-1];
 check(launch.type === 'openWaze' && launch.data.automatic === false, 'Explicit launch is sent after settings');
 check(!('left' in launch.data) && !('width' in launch.data), 'No screen crop rectangle sent as split geometry');
 check(!compact.calls.some(c => c.type === 'overlay' || c.type === 'wazeLayout'), 'Split UI sends no obsolete overlay geometry commands');
+
+const previewBefore = compact.calls.length;
+frameInput.checked = true;
+compact.clickAction('framePreview');
+const previewCommands = compact.calls.slice(previewBefore);
+check(previewCommands.length === 2 && previewCommands[0].type === 'saveSettings' && previewCommands[1].type === 'framePreview', 'Explicit frame test saves the current margins before the native preview');
+check(previewCommands[0].data.frameTop === 18 && previewCommands[0].data.frameBottom === 27 && Object.keys(previewCommands[1].data).length === 0, 'Preview uses saved numeric margins without a screen resize payload');
+compact.flushTimeouts();
+check(!compact.calls.slice(previewBefore).some(c => ['openWaze','closePanelSettings','wazeLayout','overlay'].includes(c.type)), 'Preview never launches, closes or asks to resize the split windows');
+const invalidPreviewBefore = compact.calls.length;
+compact.get('settingsForm').checkValidity = () => false;
+compact.clickAction('framePreview');
+check(compact.calls.length === invalidPreviewBefore, 'Invalid settings prevent both saving and preview');
+compact.get('settingsForm').checkValidity = () => true;
 
 const sidebar = load('overlay.js');
 const decorationCalls = sidebar.calls.length;
@@ -113,6 +155,30 @@ check(!sidebar.context.document.body.classList.contains('unified-frame'), 'Unrel
 sidebar.context.RoadDeckOverlay.receive({type:'settings',data:{splitFrame:true}});
 check(sidebar.context.document.body.classList.contains('unified-frame'), 'Explicit true restores the frame on the side panel');
 check(sidebar.calls.length === decorationCalls, 'Decoration changes send no native launch, scaling or cropping command');
+check(panelHtml.includes('class="media-bottom" id="panelFrameNotice" hidden'), 'Compact status is hidden by default without changing the right panel layout');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,decorationObstructed:true,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === false && sidebar.get('panelFrameStatus').textContent === frameUnavailable, 'Active panel shows the native reason for a confirmed obstruction');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,framePlacementFallback:true,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === false, 'A native placement refusal is shown without parsing its translated text');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameGeometryAuthoritative:true,frameRevision:4,frameDrawnRevision:4,frameNavigationPaintedPixels:0,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === false, 'A current authoritative draw with no navigation paint shows the native reason');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameGeometryAuthoritative:false,frameRevision:4,frameDrawnRevision:4,frameNavigationPaintedPixels:0,frameStatus:'Vérification de l’habillage en cours…'}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'Normal focus revalidation never changes the right panel layout despite zero visible pixels');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameRevision:4,frameDrawnRevision:4,frameNavigationPaintedPixels:0,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'Unknown geometry authority cannot become a warning');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameGeometryAuthoritative:true,frameRevision:5,frameDrawnRevision:4,frameNavigationPaintedPixels:0,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'A new geometry waiting for draw does not show an obstruction notice');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,frameGeometryAuthoritative:true,frameRevision:-1,frameDrawnRevision:-1,frameNavigationPaintedPixels:0,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'A missing frame never satisfies the completed draw criterion');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:true,frameStatus:'Habillage visible.'}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'Visible decoration leaves the right panel unchanged');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:false,frameVisible:false,decorationObstructed:true,frameStatus:'Habillage désactivé.'}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'Intentionally disabled decoration adds no warning to the panel');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:false,frameEnabled:true,frameVisible:false,decorationObstructed:true,frameStatus:frameUnavailable}});
+check(sidebar.get('panelFrameNotice').hidden === true, 'Inactive split mode adds no panel warning');
+sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,decorationObstructed:true,frameStatus:{message:'not a status'}}});
+check(sidebar.get('panelFrameNotice').hidden === true && sidebar.get('panelFrameStatus').textContent === '', 'Malformed native status never appears as an object or inferred warning');
+check(sidebar.calls.length === decorationCalls, 'All frame status updates remain read-only');
 sidebar.clickAction('gate');
 check(sidebar.calls[sidebar.calls.length-1].type === 'gate', 'Gate still begins with native confirmation request');
 sidebar.context.RoadDeckOverlay.receive({type:'gateConfirm',data:{token:'one-use-test-token'}});

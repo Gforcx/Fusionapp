@@ -85,10 +85,18 @@
                 </section>
                 <section data-page="waze" hidden>
                     <h3>Waze réduit à gauche · commandes à droite</h3>
-                    <p>Android attribue une partie de l’écran à Waze et l’autre à RoadDeck. Waze adapte sa carte à sa fenêtre ; les commandes RoadDeck ne recouvrent plus la navigation.</p>
+                    <p>Android attribue une partie de l’écran à Waze et l’autre à RoadDeck. Waze adapte sa carte à la fenêtre gérée par Android.</p>
                     <input type="hidden" name="wazeMode" value="split">
-                    <label class="check"><input type="checkbox" name="splitFrame">Habillage commun</label>
-                    <p class="note">Harmonise les contours de Waze et RoadDeck avec un cadre fin. Les dimensions de la fenêtre Waze restent gérées par Android. Le service déjà activé suffit.</p>
+                    <label class="check"><input type="checkbox" name="splitFrame">Habillage autour de Waze</label>
+                    <p class="note">Les marges recouvrent les bords de Waze. La carte garde la taille attribuée par Android.</p>
+                    <div class="two-cols">
+                        <label>Marge gauche<input type="number" name="frameLeft" min="0" max="40" step="1" required></label>
+                        <label>Marge haute<input type="number" name="frameTop" min="0" max="40" step="1" required></label>
+                        <label>Marge droite<input type="number" name="frameRight" min="0" max="40" step="1" required></label>
+                        <label>Marge basse<input type="number" name="frameBottom" min="0" max="40" step="1" required></label>
+                    </div>
+                    <div class="actions"><button type="button" data-act="framePreview">Tester l’habillage (5 s)</button></div>
+                    <p id="frameStatus" class="note" aria-live="polite">Habillage : état non déterminé.</p>
                     <div class="actions"><button type="button" data-act="wazeSetup">Activer l’assistant d’écran partagé</button><button type="button" data-act="testWaze">Afficher Waze à gauche</button><button type="button" data-act="wazeClose">Waze en grand</button></div>
                     <p id="wazeSetupStatus" class="note" aria-live="polite">Activez l’assistant RoadDeck dans les réglages d’accessibilité, puis revenez ici.</p>
                     <p class="note">L’assistant utilise l’action d’écran partagé d’Android pour placer les deux applications. Son activation se fait dans les réglages d’accessibilité. Aucun Shizuku ni accès root n’est demandé.</p>
@@ -128,7 +136,7 @@
                     <p class="note">Données Open-Meteo, attribution CC BY 4.0. Pas de clé API pour l’usage non commercial prévu par ce projet.</p>
                 </section>
                 <section data-page="about" hidden>
-                    <h3>RoadDeck 0.5.2 — écran partagé</h3><p>Waze à gauche ; commandes RoadDeck à droite ; sessions musicales Android ; radio native ; API Tuya et Open-Meteo.</p>
+                    <h3>RoadDeck 0.5.3 — écran partagé</h3><p>Waze à gauche ; commandes RoadDeck à droite ; sessions musicales Android ; radio native ; API Tuya et Open-Meteo.</p>
                     <p class="note warning">L’affichage dépend de la prise en charge de l’écran partagé par l’autoradio. Les tests d’interface utilisent une passerelle Android simulée ; ils ne constituent pas un essai de navigation sur votre appareil.</p>
                     <div class="actions"><button type="button" data-act="diagnostics">Actualiser le diagnostic</button><button type="button" data-act="copyDiagnostics">Copier le diagnostic</button></div><pre id="diagnostics">Diagnostic disponible dans l’application Android.</pre>
                     <p class="note">Aucune publicité, aucun suivi publicitaire, aucun serveur RoadDeck. Les services sélectionnés reçoivent les requêtes nécessaires à leur fonctionnement. Waze, Spotify, Deezer et Tuya restent des applications tierces indépendantes.</p>

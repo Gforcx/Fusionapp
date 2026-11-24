@@ -27,7 +27,7 @@ public final class SidePanelActivity extends Activity {
     private final AtomicBoolean weatherBusy=new AtomicBoolean(),gateBusy=new AtomicBoolean();
     private volatile long nextWeatherAttempt;
     private long lastGateAt=-10000,confirmationExpires;
-    private String gateToken="",lastSnapshot="";
+    private String gateToken="",lastSnapshot="",lastFrameSnapshot="";
     private final Runnable tick=new Runnable(){public void run(){
         if(destroyed||!visible)return;
         pushState();refreshWeather();main.postDelayed(this,1000);
@@ -65,7 +65,7 @@ public final class SidePanelActivity extends Activity {
         if(root!=null)root.setKeepScreenOn(config.bool("keepScreen",true));
     }
     @Override protected void onStart(){
-        super.onStart();visible=true;openingSettings=false;lastSnapshot="";nextWeatherAttempt=0;
+        super.onStart();visible=true;openingSettings=false;lastSnapshot="";lastFrameSnapshot="";nextWeatherAttempt=0;
         if(ready){pushInitial();pushState();}
         main.removeCallbacks(tick);main.post(tick);
         SplitScreenService.onPanelState(true,isInMultiWindowMode());
@@ -155,6 +155,8 @@ public final class SidePanelActivity extends Activity {
             JSONObject radio=RadioService.instance==null?config.lastStation().put("playing",false).put("wanted",false).put("status","Arrêtée").put("buffered",0):RadioService.instance.snapshot();
             JSONObject state=obj("music",music.snapshot(),"radio",radio);String serial=state.toString();
             if(!lastSnapshot.equals(serial)){lastSnapshot=serial;emit("state",state);}
+            JSONObject frame=SplitScreenService.snapshot(this);String frameSerial=frame.toString();
+            if(!lastFrameSnapshot.equals(frameSerial)){lastFrameSnapshot=frameSerial;emit("wazeState",frame);}
         }catch(Exception error){emit("error",obj("message",message(error)));}
     }
     private void playRadio(JSONObject station) throws Exception{

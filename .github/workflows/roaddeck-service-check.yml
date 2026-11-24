@@ -1,8 +1,13 @@
-name: RoadDeck 0.5.2 shared frame verification
+name: RoadDeck 0.5.3 visible surround verification
 
 on:
   push:
     branches: [roaddeck-service-check]
+    paths-ignore:
+      - roaddeck/docs/**
+      - roaddeck/README.md
+      - roaddeck/BUILD_VERIFIE.json
+      - roaddeck/SHA256SUMS.json
   workflow_dispatch:
 
 permissions:

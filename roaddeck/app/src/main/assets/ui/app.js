@@ -14,6 +14,7 @@
     const state = {
         tab: 'music', touchedTab: false, overlay: '', section: 'general', pickerReturn: null,
         settings: {musicPackage:'com.spotify.music',musicName:'Spotify',wazeMode:'split',wazeAuto:false,splitFrame:true,
+            frameLeft:12,frameTop:12,frameRight:12,frameBottom:12,
             keepScreen:true,gateConfirm:true,radioBuffer:15,tuyaEndpoint:'https://openapi.tuyaeu.com',
             tuyaHome:'',tuyaScene:''},
         waze: {}, music: {}, radio: {}, favorites: [], weather: {}, radioRequest: 0, cityRequest: 0,
@@ -213,6 +214,7 @@
         setText('wazeHint',message);
         setText('wazeSetupStatus',message);
         setText('wazeStatus',state.waze.message||'');
+        setText('frameStatus',typeof state.waze.frameStatus==='string'&&state.waze.frameStatus.trim()?state.waze.frameStatus:'Habillage : état non déterminé.');
     }
     function previousOrNext(direction) {
         if(state.tab==='music'){send('media',{action:direction>0?'next':'previous'});return;}
@@ -246,6 +248,7 @@
             if(native)send('cities',{query,request:++state.cityRequest});
         },
         testWaze:()=>{if(saveSettings()){if(!panelSettings)closeOverlay();setTimeout(()=>openWaze(false),100);}},
+        framePreview:()=>{if(saveSettings())send('framePreview');},
         tuyaTest:()=>{if(saveSettings()){empty($('tuyaScenes'),'Vérification de l’accès Tuya…');send('tuyaTest');}},
         clearSecret:()=>{send('saveSettings',{clearSecret:true});},
         weatherRefresh:()=>{if(saveSettings())send('weatherRefresh');}
@@ -330,6 +333,8 @@
                         `Panneau actif : ${panel.active?'oui':'non'}`,
                         `Demande en cours : ${panel.requested?'oui':'non'}`,
                         `État : ${panel.message||'aucune demande en cours'}`,
+                        `Habillage : ${typeof panel.frameStatus==='string'&&panel.frameStatus.trim()?panel.frameStatus:'état non déterminé'}`,
+                        `Habillage visible : ${panel.frameVisible===true?'oui':panel.frameVisible===false?'non':'non déterminé'}`,
                         'Position et largeur : gérées par Android',
                         `Accès aux sessions musicales : ${data.musicAccess?'autorisé':'non autorisé'}`,
                         `Service musical connecté : ${data.musicListenerConnected?'oui':'non'}`,
