@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.junit.After;
@@ -103,9 +104,12 @@ public final class SplitScreenAndroid10Test {
         assertTrue("The navigation APK must be marked testOnly", (fixture.flags & ApplicationInfo.FLAG_TEST_ONLY) != 0);
         assertNotNull("Missing fixture marker", fixture.metaData);
         assertTrue("Missing fixture marker", fixture.metaData.getBoolean("roaddeck.navigation_fixture", false));
+        device.executeShellCommand("am force-stop com.waze");
         device.wakeUp();
         enableSplitServiceAfterUiAutomation();
         await("RoadDeck accessibility service connected", 15000, SplitScreenService::isConnected);
+        setBooleanSettings(new JSONObject().put("splitAutoStart", true)
+                .put("splitCoverBars", true).put("splitFrame", true));
     }
 
     /**
@@ -169,11 +173,13 @@ public final class SplitScreenAndroid10Test {
                     && page.optBoolean("visualStateReady") && "BUTTON".equals(page.optString("tag"));
         });
         tapPanelButton(main, "launchWaze", "Afficher Waze à gauche");
+        captureStartup("startup-manual");
         // The engine can spend 55 seconds resolving an OEM's initial split orientation.
         await("native split active", 65000, () -> {
             JSONObject state = snapshot();
             assertNotEquals("Split engine failed: " + state, "FAILED", state.optString("state"));
-            return state.optBoolean("active");
+            return state.optBoolean("active") && state.optBoolean("panelReady")
+                    && !state.optBoolean("startupPending");
         });
 
         SidePanelActivity panel = awaitActivity(SidePanelActivity.class, 10000);
@@ -187,6 +193,7 @@ public final class SplitScreenAndroid10Test {
                 snapshotRect("wazeBounds"));
         assertRectNear("Engine panel bounds must agree with Android windows", side,
                 snapshotRect("panelBounds"));
+        assertSystemBarsMaskedAndRevealable(navigation, side);
         await("unified frame visibly attached", 10000, () -> snapshot().optBoolean("frameVisible"));
         assertTrue("Unified frame is enabled by default", snapshot().optBoolean("frameEnabled"));
         assertRectNear("Frame window follows the actual split pair", union(navigation, side),
@@ -313,6 +320,8 @@ public final class SplitScreenAndroid10Test {
         assertNull("The panel window must be gone", windowBounds(ROADDECK));
         assertFalse("The frame must be removed after closing the pair", snapshot().optBoolean("frameVisible"));
         assertFalse("The frame bounds must be removed with its window", snapshot().has("frameBounds"));
+        assertFalse("The system bar masks must leave with the split", snapshot().optBoolean("barMaskVisible"));
+        assertFalse("The startup curtain cannot remain after closing", snapshot().optBoolean("startupPending"));
         assertFourCorners(fullScreen, 1);
         for (int i = 0; i < CORNERS.length; i++) {
             corner(i).click();
@@ -321,7 +330,235 @@ public final class SplitScreenAndroid10Test {
                     () -> (NAMES[index] + " : 2").equals(corner(index).getText()));
         }
         assertFourCorners(fullScreen, 2);
-        writeState("passed: fixture windows, visible 12dp surround, toggle without resize, corner clicks, preview expiry, settings task, fullscreen return");
+        writeState("passed: real startup capture, fixture windows, system bar mask pixels, touch reveal and timed restore, visible 12dp surround, toggle without resize, corner clicks, preview expiry, settings task, fullscreen return");
+    }
+
+    @Test public void automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery() throws Exception {
+        MainActivity main = launchAutomaticEntry();
+        captureStartup("startup-auto-cancel");
+        UiObject2 cancel = device.findObject(By.pkg(ROADDECK).desc("Annuler le démarrage"));
+        assertNotNull("A native Cancel action must be visible during real setup", cancel);
+        Rect cancelBounds = cancel.getVisibleBounds();
+        assertTrue("Cancel must have an on-screen touch target", !cancelBounds.isEmpty());
+        clearAutomationNodeCache();
+        assertTrue("Cancel touch injection failed", device.click(cancelBounds.centerX(), cancelBounds.centerY()));
+        await("startup cancelled and recovery visible", 12000, () -> {
+            JSONObject state = snapshot();
+            return "IDLE".equals(state.optString("state")) && !state.optBoolean("requested")
+                    && !state.optBoolean("startupPending") && findActivity(MainActivity.class) != null;
+        });
+        main = awaitActivity(MainActivity.class, 10000);
+        final MainActivity recovery = main;
+        await("cancel returns to readable Waze settings", 15000, () -> {
+            JSONObject page = readDomElement(recovery, "wazeSetupStatus");
+            return page.optBoolean("visible") && page.optString("text").contains("annulée");
+        });
+        assertIdleWithoutRestart(2500);
+        assertTrue("Save cancellation recovery", device.takeScreenshot(new File(evidenceDirectory(), "startup-cancelled.png")));
+        writeNamedState("startup-cancelled.json", "native cancel returned to settings without an automatic loop");
+
+        // A genuine new launcher entry re-arms exactly one attempt. No button,
+        // JavaScript handler, service begin(), or shell split command starts it.
+        main = launchAutomaticEntry();
+        captureStartup("startup-automatic");
+        await("automatic native pair and right panel ready", 65000, () -> {
+            JSONObject state = snapshot();
+            assertNotEquals("Automatic split failed: " + state, "FAILED", state.optString("state"));
+            return state.optBoolean("active") && state.optBoolean("panelReady")
+                    && !state.optBoolean("startupPending");
+        });
+        SidePanelActivity panel = awaitActivity(SidePanelActivity.class, 10000);
+        assertMultiWindow(panel);
+        Rect navigation = awaitWindow(NAVIGATION, 10000);
+        Rect side = awaitWindow(ROADDECK, 10000);
+        assertSideBySide(navigation, side);
+        assertNotEquals("Automatic entry must also create a separate panel task", taskId(main), taskId(panel));
+        await("decoration and system bars ready after automatic startup", 10000,
+                () -> snapshot().optBoolean("frameVisible") && snapshot().optBoolean("barMaskVisible"));
+        assertTrue("Save automatic pair", device.takeScreenshot(new File(evidenceDirectory(), "split-automatic.png")));
+        writeNamedState("split-automatic.json", "ACTION_MAIN/CATEGORY_LAUNCHER alone opened the native pair");
+
+        tapPanelButton(panel, "closeButton", "Fermer les commandes et afficher Waze en grand");
+        await("automatic pair closed to fullscreen navigation", 25000, () -> {
+            JSONObject state = snapshot();
+            if (state.optBoolean("active") || state.optBoolean("requested")
+                    || !"IDLE".equals(state.optString("state"))) return false;
+            Rect bounds = windowBounds(NAVIGATION);
+            return bounds != null && bounds.width() >= device.getDisplayWidth() * .90;
+        });
+        assertFalse("Closing cannot leave the loading screen", snapshot().optBoolean("startupPending"));
+        assertFalse("Closing removes the Android bar masks", snapshot().optBoolean("barMaskVisible"));
+        Intent inspect = new Intent(context, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                .putExtra("skipWazeAuto", true).putExtra("roaddeckPage", "waze");
+        MainActivity settings = (MainActivity) instrumentation.startActivitySync(inspect);
+        await("manual settings return is drawn", 15000, () -> {
+            JSONObject page = readDomElement(settings, "wazeSetupStatus");
+            return page.optBoolean("visible");
+        });
+        assertIdleWithoutRestart(2500);
+        writeNamedState("startup-no-restart.json", "manual settings return with skipWazeAuto never starts another pair");
+    }
+
+    @Test public void unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop() throws Exception {
+        // Only the explicitly verified testOnly fixture can be disabled by this harness.
+        device.executeShellCommand("pm disable-user --user current com.waze");
+        try {
+            assertNull("Fixture must actually be unavailable before the failure test",
+                    context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
+            MainActivity main = launchAutomaticEntry();
+            await("missing navigation is explained in the visible launcher", 15000, () -> {
+                JSONObject page = readDomElement(main, "toast");
+                return page.optBoolean("visible") && page.optString("text").contains("Installez et ouvrez Waze");
+            });
+            assertTrue("Save unavailable-navigation recovery", device.takeScreenshot(
+                    new File(evidenceDirectory(), "startup-waze-unavailable.png")));
+            await("launcher button remains usable after failed precondition", 10000, () -> {
+                JSONObject page = readDomElement(main, "launchWaze");
+                return page.optBoolean("visible") && page.optBoolean("hit") && page.optBoolean("visualStateReady");
+            });
+            assertIdleWithoutRestart(2500);
+            assertNull("No unavailable navigation window may be fabricated", windowBounds(NAVIGATION));
+            writeNamedState("startup-waze-unavailable.json", "missing navigation leaves a visible message and interactive launcher; no loading loop");
+        } finally {
+            device.executeShellCommand("pm enable --user current com.waze");
+            assertNotNull("Restore the test fixture after this test",
+                    context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
+        }
+    }
+
+    private MainActivity launchAutomaticEntry() {
+        Intent launch = new Intent(context, MainActivity.class).setAction(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        return (MainActivity) instrumentation.startActivitySync(launch);
+    }
+
+    private void assertIdleWithoutRestart(long duration) {
+        long until = SystemClock.uptimeMillis() + duration;
+        do {
+            JSONObject state = snapshot();
+            assertEquals("Recovery must remain idle without repeating startup", "IDLE", state.optString("state"));
+            assertFalse("Recovery must not request another split", state.optBoolean("requested"));
+            assertFalse("Recovery must remove the loading curtain", state.optBoolean("startupPending"));
+            assertFalse("Recovery must remove the visible loading window", state.optBoolean("startupVisible"));
+            SystemClock.sleep(100);
+        } while (SystemClock.uptimeMillis() < until);
+    }
+
+    private void captureStartup(String stem) throws Exception {
+        File screenshot = new File(evidenceDirectory(), stem + ".png");
+        AtomicReference<JSONObject> captured = new AtomicReference<>();
+        await("full startup curtain composed on screen", 5000, () -> {
+            JSONObject nativeState = snapshot();
+            if (!nativeState.optBoolean("startupVisible")) return false;
+            if (!device.takeScreenshot(screenshot)) return false;
+            Bitmap image = BitmapFactory.decodeFile(screenshot.getAbsolutePath());
+            if (image == null) return false;
+            boolean full = startupPixelsVisible(image);
+            image.recycle();
+            if (full) captured.set(nativeState);
+            return full;
+        });
+        JSONObject state = captured.get();
+        assertNotNull("Startup capture must preserve its observed native state", state);
+        JSONObject box = state.getJSONObject("startupBounds");
+        assertEquals("Loading covers the top edge", 0, box.getInt("top"));
+        assertEquals("Loading covers the left edge", 0, box.getInt("left"));
+        assertEquals("Loading covers the full physical width", device.getDisplayWidth(), box.getInt("right"));
+        assertEquals("Loading covers the full physical height", device.getDisplayHeight(), box.getInt("bottom"));
+        state.put("screenshot", screenshot.getName()).put("fixture", true).put("realWazeTested", false)
+                .put("actualComposedPixelsChecked", true).put("testNote", "opaque edges and bright central loader artwork present in the actual composed screen");
+        try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), stem + ".json"))) {
+            output.write(state.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private boolean startupPixelsVisible(Bitmap image) {
+        if (image.getWidth() != device.getDisplayWidth() || image.getHeight() != device.getDisplayHeight()) return false;
+        int width = image.getWidth(), height = image.getHeight();
+        // A partially covered screen or the navigation fixture cannot pass these
+        // samples over all four physical edges, including the system bar strips.
+        for (int x = 5; x < width - 5; x += 31)
+            if (!darkStartupPixel(image.getPixel(x, 4)) || !darkStartupPixel(image.getPixel(x, height - 5))) return false;
+        for (int y = 5; y < height - 5; y += 29)
+            if (!darkStartupPixel(image.getPixel(4, y)) || !darkStartupPixel(image.getPixel(width - 5, y))) return false;
+        int bright = 0;
+        for (int y = height / 8; y < height * 4 / 5; y += 2)
+            for (int x = width / 3; x < width * 2 / 3; x += 2) {
+                int color = image.getPixel(x, y);
+                if (Color.red(color) > 150 && Color.green(color) > 110 && Color.blue(color) > 170) bright++;
+            }
+        return bright > 100;
+    }
+
+    private boolean darkStartupPixel(int color) {
+        return Color.alpha(color) == 255 && Color.red(color) >= 5 && Color.red(color) <= 28
+                && Color.green(color) >= 5 && Color.green(color) <= 30
+                && Color.blue(color) >= 12 && Color.blue(color) <= 60;
+    }
+
+    private void assertSystemBarsMaskedAndRevealable(Rect navigation, Rect panel) throws Exception {
+        await("system bar masks attached and measured", 10000,
+                () -> snapshot().optBoolean("barMaskVisible") && snapshot().optBoolean("barMaskPlacementConfirmed"));
+        JSONArray measured = snapshot().getJSONArray("barMaskBounds");
+        assertTrue("At least one real system strip must be masked on API29", measured.length() > 0);
+        List<Rect> bands = new ArrayList<>();
+        for (int i = 0; i < measured.length(); i++) {
+            JSONObject box = measured.getJSONObject(i);
+            Rect band = new Rect(box.getInt("left"), box.getInt("top"), box.getInt("right"), box.getInt("bottom"));
+            assertFalse("A mask cannot have empty bounds", band.isEmpty());
+            assertTrue("A mask must stay within the physical display", new Rect(0, 0,
+                    device.getDisplayWidth(), device.getDisplayHeight()).contains(band));
+            bands.add(band);
+        }
+        File on = new File(evidenceDirectory(), "system-bars-masked.png");
+        await("actual opaque mask pixels over every measured bar", 5000, () -> {
+            if (!device.takeScreenshot(on)) return false;
+            Bitmap bitmap = BitmapFactory.decodeFile(on.getAbsolutePath());
+            if (bitmap == null) return false;
+            boolean covered = true;
+            for (Rect band : bands) {
+                int dark = 0, total = 0;
+                for (int y = band.top + 1; y < band.bottom - 1; y += 2)
+                    for (int x = band.left + 1; x < band.right - 1; x += 2) {
+                        total++; if (isFrameColor(bitmap.getPixel(x, y))) dark++;
+                    }
+                if (total == 0 || dark < total * .995) covered = false;
+            }
+            bitmap.recycle();return covered;
+        });
+        writeNamedState("system-bars-masked.json", "actual screenshot confirms opaque dark pixels inside the measured Android strips");
+        Rect touched = bands.get(0);
+        clearAutomationNodeCache();
+        assertTrue("Tapping the visible band must be accepted", device.click(touched.centerX(), touched.centerY()));
+        await("band touch reveals Android controls", 5000, () -> snapshot().optBoolean("barMaskTemporarilyRevealed")
+                && !snapshot().optBoolean("barMaskVisible"));
+        File off = new File(evidenceDirectory(), "system-bars-revealed.png");
+        await("compositor actually reveals system strips", 5000, () -> {
+            if (!device.takeScreenshot(off)) return false;
+            Bitmap masked = BitmapFactory.decodeFile(on.getAbsolutePath());
+            Bitmap revealed = BitmapFactory.decodeFile(off.getAbsolutePath());
+            if (masked == null || revealed == null) {
+                if (masked != null) masked.recycle();if (revealed != null) revealed.recycle();return false;
+            }
+            int changed = 0;
+            for (Rect band : bands)
+                for (int y = band.top + 1; y < band.bottom - 1; y += 2)
+                    for (int x = band.left + 1; x < band.right - 1; x += 2) {
+                        int a = masked.getPixel(x, y), b = revealed.getPixel(x, y);
+                        if (Math.abs(Color.red(a) - Color.red(b)) + Math.abs(Color.green(a) - Color.green(b))
+                                + Math.abs(Color.blue(a) - Color.blue(b)) > 20) changed++;
+                    }
+            masked.recycle();revealed.recycle();return changed > 16;
+        });
+        assertRectNear("Showing system bars must not resize navigation", navigation, awaitWindow(NAVIGATION, 5000));
+        assertRectNear("Showing system bars must not resize RoadDeck", panel, awaitWindow(ROADDECK, 5000));
+        assertTrue("A tap on a hidden system button must not trigger that button", snapshot().optBoolean("active"));
+        writeNamedState("system-bars-revealed.json", "band touch reveals controls without forwarding the tap or changing either application window");
+        await("masks return after the temporary reveal", 10000,
+                () -> snapshot().optBoolean("barMaskVisible") && !snapshot().optBoolean("barMaskTemporarilyRevealed"));
+        assertRectNear("Restoring the masks preserves navigation geometry", navigation, awaitWindow(NAVIGATION, 5000));
     }
 
     private boolean isFrameColor(int color) {
@@ -382,11 +619,16 @@ public final class SplitScreenAndroid10Test {
     }
 
     private void setFrameEnabled(boolean enabled) {
+        try { setBooleanSettings(new JSONObject().put("splitFrame", enabled)); }
+        catch (Exception impossible) { throw new AssertionError(impossible); }
+    }
+
+    private void setBooleanSettings(JSONObject values) {
         clearAutomationNodeCache();
         AtomicReference<Exception> failure = new AtomicReference<>();
         instrumentation.runOnMainSync(() -> {
             try {
-                new Config(context).save(new JSONObject().put("splitFrame", enabled));
+                new Config(context).save(values);
                 SplitScreenService.settingsChanged();
             } catch (Exception error) { failure.set(error); }
         });

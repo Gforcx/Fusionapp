@@ -1,4 +1,4 @@
-name: RoadDeck 0.5.3 visible surround verification
+name: RoadDeck 0.5.4 startup and system bars verification
 
 on:
   push:
@@ -113,3 +113,4 @@ jobs:
             roaddeck/app/build/test-results
           if-no-files-found: warn
           retention-days: 5
+

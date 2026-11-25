@@ -7,3 +7,5 @@ body.unified-frame{background:#0c1020}
 .unified-frame .media,.unified-frame .gate,.unified-frame .weather{border:1px solid #34263f;border-radius:6px}
 @media(max-height:440px){.unified-frame #dashboard{padding:6px}}
 @media(max-width:280px){.unified-frame #dashboard{padding:5px}}
+
+#systemBarsButton{min-width:56px;min-height:38px;font-size:11px;padding:7px 8px;border:1px solid #4b3b62;border-radius:8px;color:#dcc8f5;background:#1c192d}

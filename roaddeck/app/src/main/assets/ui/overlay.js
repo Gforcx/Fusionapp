@@ -51,7 +51,7 @@
         gate:()=>send('gate'),weather:()=>send('settings',{page:'weather'}),
         settings:()=>send('settings',{page:'waze'}),
         collapse:()=>{cancelConfirm(false);$('stations').hidden=true;send('collapse');},
-        stop:()=>send('stop')
+        systemBars:()=>send('systemBars'),stop:()=>send('stop')
     };
     document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b&&actions[b.dataset.act]){e.preventDefault();actions[b.dataset.act]();}});
     $('cancelGate').addEventListener('click',()=>cancelConfirm());

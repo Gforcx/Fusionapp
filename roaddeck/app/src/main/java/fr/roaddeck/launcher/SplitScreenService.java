@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.KeyguardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -21,6 +22,7 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowInsets;
+import android.view.ViewTreeObserver;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -37,7 +40,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * User-started split-screen controller. It uses only public accessibility APIs.
+ * Visible-launch split-screen controller. It uses only public accessibility APIs.
  * The service reads window package names and rectangles, never text or screenshots.
  *
  * Required service XML: canRetrieveWindowContent=true,
@@ -88,6 +91,17 @@ public final class SplitScreenService extends AccessibilityService {
     private boolean barInsetsObserved;
     private long previewUntil;
     private SplitGeometry.Box lastRequestedFrameBounds, lastPlacedFrameBounds;
+    private SystemBarMask systemBarMask;
+    private boolean coverSystemBars = true, panelReady;
+    private long barsRevealedUntil;
+    private StartupLoadingView startupView;
+    private SplitGeometry.Box startupBounds;
+    private final Set<Integer> startupWindowIds = new HashSet<>();
+    private boolean startupSession, startupPlacementConfirmed, startupDrawn, startupReleaseQueued, startupSuspended;
+    private long startupGeneration, startupReadyDeadline;
+    private String startupError = "";
+    private WeakReference<Activity> startupActivity;
+    private Runnable pendingFirstLaunch;
 
     // Window identities are cached separately from geometry. Rectangles always come
     // from the current getWindows() result; no old rectangle is ever reused.
@@ -106,7 +120,7 @@ public final class SplitScreenService extends AccessibilityService {
             drive();
             if (pending()) enqueue(180);
             else if (phase == Phase.RUNNING
-                    && (active || SystemClock.uptimeMillis() - lastGoodPairAt < 1500)) enqueue(900);
+                    && (startupSession || active || SystemClock.uptimeMillis() - lastGoodPairAt < 1500)) enqueue(900);
         }
     };
 
@@ -129,6 +143,7 @@ public final class SplitScreenService extends AccessibilityService {
     private void readFrameSettings() {
         Config config = new Config(this);
         frameEnabled = config.bool("splitFrame", true);
+        coverSystemBars = config.bool("splitCoverBars", true);
         frameLeft = frameMargin(config, "frameLeft");
         frameTop = frameMargin(config, "frameTop");
         frameRight = frameMargin(config, "frameRight");
@@ -169,7 +184,7 @@ public final class SplitScreenService extends AccessibilityService {
         }, 5000);
     }
 
-    /** Must be called for an explicit request from a visible activity. */
+    /** Called by a visible launch, including the user's enabled automatic startup. */
     public static boolean begin(Context context) {
         SplitScreenService service = instance;
         if (service == null) {
@@ -184,6 +199,52 @@ public final class SplitScreenService extends AccessibilityService {
         service.readBarInsets(((Activity) context).getWindow().getDecorView().getRootWindowInsets());
         service.refreshSplitActionAvailability();
         return service.startPair((Activity) context);
+    }
+
+    /** A rendered right panel, not a timer, permits the startup curtain to leave. */
+    public static void onPanelReady(boolean ready) {
+        SplitScreenService service = instance;
+        if (service == null) return;
+        service.handler.post(() -> {
+            if (instance != service) return;
+            service.panelReady = ready;
+            if (service.pending() || service.phase == Phase.RUNNING) service.enqueue(0);
+        });
+    }
+
+    public static void revealSystemBars(Context context) {
+        SplitScreenService service = instance;
+        if (service == null || !visibleActivity(context)) return;
+        service.handler.post(service::revealBars);
+    }
+
+    public static void cancelStartup(Context context) {
+        SplitScreenService service = instance;
+        if (service == null) return;
+        service.handler.post(service::cancelStartupInternal);
+    }
+
+    private void revealBars() {
+        barsRevealedUntil = SystemClock.uptimeMillis() + 8000;
+        if (systemBarMask != null) systemBarMask.hide();
+        final long until = barsRevealedUntil;
+        handler.postDelayed(() -> {
+            if (instance == this && barsRevealedUntil == until) enqueue(0);
+        }, 8000);
+        publish();
+    }
+
+    private void cancelStartupInternal() {
+        if (!startupSession) return;
+        cancelScans();
+        removeStartup();
+        removeSeam();
+        if (systemBarMask != null) systemBarMask.hide();
+        phase = Phase.IDLE;
+        active = false;
+        message = "Préparation annulée. Vous pouvez relancer Waze depuis RoadDeck.";
+        publish();
+        showRecovery();
     }
 
     /** User-requested close only; service disconnects never launch or close other apps. */
@@ -226,6 +287,8 @@ public final class SplitScreenService extends AccessibilityService {
             out.put("serviceConnected", connected);
             out.put("frameEnabled", new Config(context).bool("splitFrame", true));
             if (!connected) {
+                out.put("startupVisible", false);
+                out.put("barMaskVisible", false);
                 out.put("frameVisible", false);
                 out.put("frameStatus", "Habillage arrêté : service d’accessibilité non connecté.");
                 out.put("framePreview", false);
@@ -276,6 +339,7 @@ public final class SplitScreenService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        systemBarMask = new SystemBarMask(this, windowManager, this::revealBars, this::publish);
         readFrameSettings();
         clearWindowOwners();
         if (ownerReader == null || ownerReader.isShutdown())
@@ -289,7 +353,7 @@ public final class SplitScreenService extends AccessibilityService {
             info.notificationTimeout = 100;
             setServiceInfo(info);
         }
-        // Fresh process/service means an idle controller. No stored auto-start or auto-toggles.
+        // Binding alone never starts another app. MainActivity owns enabled auto-start.
         phase = Phase.IDLE;
         active = false;
         refreshSplitActionAvailability();
@@ -336,9 +400,10 @@ public final class SplitScreenService extends AccessibilityService {
         if (event == null) return;
         int windowId = event.getWindowId();
         captureDecorationWindowId();
+        captureStartupWindowId();
         // This passive window never changes app geometry. Reacting to its own
         // add/layout notifications would hide and restore it repeatedly.
-        if (windowId >= 0 && windowId == seamWindowId) return;
+        if (isOwnOverlayWindow(windowId)) return;
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                 && windowId >= 0 && event.getPackageName() != null) {
             // Keep ownership events even while idle, before the user starts a pair.
@@ -355,6 +420,7 @@ public final class SplitScreenService extends AccessibilityService {
             // The old gap is no longer authoritative as soon as the windows change.
             // Hide immediately; a new scan must revalidate both apps before restoring it.
             hideDecoration();
+            if (systemBarMask != null) systemBarMask.hide();
             publish();
             enqueue(60);
         }
@@ -362,6 +428,8 @@ public final class SplitScreenService extends AccessibilityService {
 
     @Override public void onInterrupt() {
         cancelScans();
+        removeStartup();
+        if (systemBarMask != null) systemBarMask.hide();
         removeSeam();
         active = false;
         phase = Phase.IDLE;
@@ -371,6 +439,8 @@ public final class SplitScreenService extends AccessibilityService {
 
     @Override public void onDestroy() {
         cancelScans();
+        removeStartup();
+        if (systemBarMask != null) systemBarMask.destroy();
         removeSeam();
         clearWindowOwners();
         // Queued copies still run their finally/recycle path; the generation
@@ -417,25 +487,216 @@ public final class SplitScreenService extends AccessibilityService {
             return false;
         }
         cancelScans();
+        removeStartup();
+        if (systemBarMask != null) systemBarMask.hide();
         removeSeam();
         active = false;
         swapUsed = false;
-        panelVisible = panelMultiWindow = false;
+        panelVisible = panelMultiWindow = panelReady = false;
         closePanelTasks();
         overallDeadline = SystemClock.uptimeMillis() + 55000;
+        startupSession = true;
+        startupError = "";
+        startupActivity = new WeakReference<>(activity);
         enter(Phase.WAIT_WAZE, 12000, "Ouverture de Waze…");
-        try {
-            // The first launch uses the visible activity that received the user's request.
-            activity.startActivity(intent);
-        } catch (RuntimeException error) {
-            fail("Impossible d’ouvrir Waze : " + error.getClass().getSimpleName());
-            return false;
-        }
+        final long generation = startupGeneration;
+        pendingFirstLaunch = () -> {
+            if (instance != this || !startupSession || startupGeneration != generation || phase != Phase.WAIT_WAZE) return;
+            pendingFirstLaunch = null;
+            Activity launching = startupActivity == null ? null : startupActivity.get();
+            if (!visibleActivity(launching) || !launching.hasWindowFocus()) {
+                fail("RoadDeck a quitté le premier plan avant l’ouverture de Waze.");
+                return;
+            }
+            try { launching.startActivity(intent); }
+            catch (RuntimeException error) { fail("Impossible d’ouvrir Waze : " + error.getClass().getSimpleName()); }
+        };
+        showStartup();
+        // A failed overlay must not prevent a valid split. Never wait indefinitely
+        // for a compositor callback on a vendor ROM that refuses this surface.
+        handler.postDelayed(() -> {
+            if (startupGeneration == generation && pendingFirstLaunch != null) {
+                if (!startupPlacementConfirmed) {
+                    startupError = "Écran de chargement non confirmé par Android.";
+                    detachStartupView();
+                }
+                runFirstLaunch();
+            }
+        }, 1200);
         enqueue(180);
         return true;
     }
 
+    private void showStartup() {
+        if (!startupSession || windowManager == null) return;
+        Point size = new Point();
+        windowManager.getDefaultDisplay().getRealSize(size);
+        if (size.x <= 0 || size.y <= 0) return;
+        startupBounds = new SplitGeometry.Box(0, 0, size.x, size.y);
+        startupView = new StartupLoadingView(this, this::cancelStartupInternal);
+        startupView.setStage(message);
+        startupView.setAlpha(0f);
+        startupPlacementConfirmed = startupDrawn = startupReleaseQueued = startupSuspended = false;
+        final StartupLoadingView candidate = startupView;
+        candidate.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        candidate.setOnApplyWindowInsetsListener((view, insets) -> {
+            readBarInsets(insets);
+            return insets;
+        });
+        candidate.addOnLayoutChangeListener((view, left, top, right, bottom, oldL, oldT, oldR, oldB) -> {
+            if (view != startupView || startupBounds == null) return;
+            captureStartupWindowId();
+            int[] location = new int[2]; view.getLocationOnScreen(location);
+            boolean exact = location[0] == 0 && location[1] == 0
+                    && view.getWidth() == startupBounds.width() && view.getHeight() == startupBounds.height();
+            startupPlacementConfirmed = exact;
+            view.setAlpha(exact && !startupSuspended ? 1f : 0f);
+            if (!exact && view.getWidth() > 0 && view.getHeight() > 0)
+                startupError = "Position plein écran du chargement refusée par Android.";
+            publish();
+        });
+        candidate.getViewTreeObserver().addOnDrawListener(new ViewTreeObserver.OnDrawListener() {
+            @Override public void onDraw() {
+                if (candidate != startupView || !startupPlacementConfirmed || startupSuspended || startupDrawn) return;
+                startupDrawn = true;
+                // Leave one frame for composition before replacing the visible activity.
+                candidate.postOnAnimation(() -> {
+                    if (candidate != startupView) return;
+                    publish();
+                    runFirstLaunch();
+                });
+            }
+        });
+        try {
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(size.x, size.y,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT);
+            params.gravity = Gravity.TOP | Gravity.LEFT;
+            params.windowAnimations = 0;
+            params.setTitle("RoadDeck préparation de l’écran partagé");
+            if (Build.VERSION.SDK_INT >= 28)
+                params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            if (Build.VERSION.SDK_INT >= 30) params.setFitInsetsTypes(0);
+            windowManager.addView(candidate, params);
+            candidate.requestApplyInsets();
+        } catch (RuntimeException error) {
+            startupError = "Chargement visuel indisponible : " + error.getClass().getSimpleName();
+            detachStartupView();
+            runFirstLaunch();
+        }
+        publish();
+    }
+
+    private void runFirstLaunch() {
+        Runnable launch = pendingFirstLaunch;
+        if (launch != null) launch.run();
+    }
+
+    private void captureStartupWindowId() {
+        if (startupView == null || !startupView.isAttachedToWindow()) return;
+        try {
+            AccessibilityNodeInfo node = startupView.createAccessibilityNodeInfo();
+            if (node == null) return;
+            try { if (node.getWindowId() >= 0) startupWindowIds.add(node.getWindowId()); }
+            finally { node.recycle(); }
+        } catch (RuntimeException ignored) { }
+    }
+
+    private boolean isOwnOverlayWindow(int id) {
+        return id >= 0 && (id == seamWindowId || startupWindowIds.contains(id)
+                || (systemBarMask != null && systemBarMask.isOwnWindow(id)));
+    }
+
+    private boolean startupVisible() {
+        return startupSession && startupView != null && startupView.isAttachedToWindow()
+                && !startupSuspended && startupPlacementConfirmed && startupDrawn && startupView.getAlpha() > .99f;
+    }
+
+    private void suspendStartup(boolean suspended) {
+        if (startupView == null || startupSuspended == suspended) return;
+        startupSuspended = suspended;
+        startupView.setVisibility(suspended ? View.INVISIBLE : View.VISIBLE);
+        startupView.setAlpha(!suspended && startupPlacementConfirmed ? 1f : 0f);
+        try {
+            WindowManager.LayoutParams params = (WindowManager.LayoutParams) startupView.getLayoutParams();
+            if (suspended) params.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            else params.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+            windowManager.updateViewLayout(startupView, params);
+        } catch (RuntimeException error) {
+            startupError = "Chargement retiré pour laisser accès à la fenêtre ouverte.";
+            detachStartupView();
+        }
+    }
+
+    private void updateStartup() {
+        if (!startupSession) return;
+        if (startupView != null) startupView.setStage(message);
+        if (phase == Phase.RUNNING) {
+            if (startupReadyDeadline == 0) startupReadyDeadline = SystemClock.uptimeMillis() + 10000;
+            boolean frameSettled = !frameEnabled || frameVisible() || framePlacementFailed || latest.decorationObstructed;
+            if (confirmedPair(latest) && panelReady && frameSettled && !startupReleaseQueued) {
+                startupReleaseQueued = true;
+                final long generation = startupGeneration;
+                handler.postDelayed(() -> {
+                    if (generation != startupGeneration || !startupSession) return;
+                    if (phase == Phase.RUNNING && active && panelReady) {
+                        removeStartup();
+                        updateBars(latest);
+                        publish();
+                    } else startupReleaseQueued = false;
+                }, 80);
+            } else if (SystemClock.uptimeMillis() > startupReadyDeadline) {
+                fail("Les fenêtres sont ouvertes, mais le panneau RoadDeck n’a pas terminé son affichage. Réessayez depuis Réglages > Waze.");
+            }
+        }
+    }
+
+    private void detachStartupView() {
+        captureStartupWindowId();
+        StartupLoadingView old = startupView;
+        startupView = null;
+        if (old != null) {
+            old.destroy();
+            try { if (old.isAttachedToWindow()) windowManager.removeViewImmediate(old); }
+            catch (RuntimeException ignored) { }
+        }
+        startupBounds = null;
+        startupPlacementConfirmed = startupDrawn = false;
+    }
+
+    private void removeStartup() {
+        ++startupGeneration;
+        pendingFirstLaunch = null;
+        startupActivity = null;
+        startupSession = false;
+        startupReadyDeadline = 0;
+        startupReleaseQueued = false;
+        detachStartupView();
+    }
+
+    private void showRecovery() {
+        try {
+            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                    | Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra("skipWazeAuto", true).putExtra("roaddeckPage", "waze"));
+        } catch (RuntimeException ignored) { }
+    }
+
+    private void updateBars(Observation observation) {
+        if (systemBarMask == null) return;
+        boolean allowed = coverSystemBars && phase == Phase.RUNNING && active && confirmedPair(observation)
+                && !observation.decorationObstructed && !observation.inputMethodVisible && !observation.keyguardLocked
+                && (observation.wazeFocused || observation.panelFocused)
+                && SystemClock.uptimeMillis() >= barsRevealedUntil;
+        systemBarMask.update(observation.barExclusions, allowed);
+    }
+
     private void startClose() {
+        removeStartup();
+        if (systemBarMask != null) systemBarMask.hide();
         previewUntil = 0;
         failureStage = "";
         failureElapsedMs = 0;
@@ -465,6 +726,21 @@ public final class SplitScreenService extends AccessibilityService {
         latest = observe();
         long now = SystemClock.uptimeMillis();
         phaseSamples++;
+        if (startupSession) suspendStartup(latest.unknownForeground);
+        if (startupSession && (latest.keyguardLocked || latest.focusedSystemWindow
+                || latest.inputMethodVisible || unexpectedStartupApplication(latest))) {
+            // A permission dialog, lock screen or deliberately opened app must be
+            // accessible immediately. Do not relaunch RoadDeck over that surface.
+            cancelScans();
+            removeStartup();
+            removeSeam();
+            if (systemBarMask != null) systemBarMask.hide();
+            active = false;
+            phase = Phase.IDLE;
+            message = "Préparation interrompue pour laisser accès à l’écran ouvert.";
+            publish();
+            return;
+        }
         if (pending() && latest.screenWidth > 0 && latest.screenWidth < latest.screenHeight) {
             fail("L’écran doit rester en paysage pour afficher Waze à gauche.");
             return;
@@ -582,7 +858,21 @@ public final class SplitScreenService extends AccessibilityService {
             lastWaitLogAt = now;
             Log.i(TAG, "wait " + diagnosticLine());
         }
+        updateBars(latest);
+        updateStartup();
         publish();
+    }
+
+    private boolean unexpectedStartupApplication(Observation observation) {
+        String owner = observation.foregroundOtherPackage;
+        if (owner == null || owner.isEmpty()) return false;
+        // Native split briefly displays the system's task picker. Allow it only
+        // while one of the two tasks is being docked, not during normal operation.
+        boolean arranging = phase == Phase.WAIT_DOCK_WAZE || phase == Phase.WAIT_DOCK_PANEL
+                || phase == Phase.WAIT_PAIR || phase == Phase.WAIT_CLEAR_FOR_SWAP;
+        return !(arranging && ("com.android.systemui".equals(owner)
+                || "com.android.launcher3".equals(owner)
+                || "com.google.android.apps.nexuslauncher".equals(owner)));
     }
 
     private boolean confirmedPair(Observation observation) {
@@ -638,6 +928,7 @@ public final class SplitScreenService extends AccessibilityService {
         stableSignature = 0;
         deadline = phaseStartedAt + timeoutMs;
         message = text;
+        if (startupView != null) startupView.setStage(text);
         Log.i(TAG, "phase " + previous + " -> " + next + " requestMs="
                 + (phaseStartedAt - requestStartedAt) + " timeoutMs=" + timeoutMs);
         publish();
@@ -743,6 +1034,9 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     private void fail(String text) {
+        boolean recover = startupSession;
+        removeStartup();
+        if (systemBarMask != null) systemBarMask.hide();
         cancelScans();
         removeSeam();
         failureStage = phase.name();
@@ -753,6 +1047,7 @@ public final class SplitScreenService extends AccessibilityService {
         message = text;
         publish();
         Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+        if (recover) showRecovery();
     }
 
     private Observation observe() {
@@ -760,6 +1055,9 @@ public final class SplitScreenService extends AccessibilityService {
         long startedAt = SystemClock.uptimeMillis();
         try {
             captureDecorationWindowId();
+            captureStartupWindowId();
+            KeyguardManager keyguard = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            observation.keyguardLocked = keyguard != null && keyguard.isKeyguardLocked();
             Point size = new Point();
             if (windowManager != null) windowManager.getDefaultDisplay().getRealSize(size);
             observation.screenWidth = size.x;
@@ -779,7 +1077,7 @@ public final class SplitScreenService extends AccessibilityService {
                         observation.divider = true;
                         continue;
                     }
-                    if (type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY && id == seamWindowId) continue;
+                    if (type == AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY && isOwnOverlayWindow(id)) continue;
                     Rect rect = new Rect();
                     window.getBoundsInScreen(rect);
                     SplitGeometry.Box box = new SplitGeometry.Box(Math.max(0, rect.left), Math.max(0, rect.top),
@@ -821,13 +1119,18 @@ public final class SplitScreenService extends AccessibilityService {
                 if (window.id == observation.wazeWindowId || window.id == observation.panelWindowId) continue;
                 String owner = windowPackages.get(window.id);
                 if (window.focused && (owner == null || (!WAZE.equals(owner) && !getPackageName().equals(owner)))) {
+                    if (owner == null) observation.unknownForeground = true;
+                    if (owner != null) observation.foregroundOtherPackage = owner;
                     blockDecoration(observation, "Une autre application est au premier plan.");
                 } else {
                     clipAbovePair(window, observation);
                 }
             }
             for (OwnedWindow window : otherWindows) {
+                if (window.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD)
+                    observation.inputMethodVisible = true;
                 if (window.type == AccessibilityWindowInfo.TYPE_SYSTEM && window.focused) {
+                    observation.focusedSystemWindow = true;
                     blockDecoration(observation, "Une fenêtre système est au premier plan.");
                     continue;
                 }
@@ -1196,6 +1499,15 @@ public final class SplitScreenService extends AccessibilityService {
             JSONObject out = new JSONObject().put("mode", "split").put("active", active)
                     .put("requested", pending()).put("accessibilityGranted", instance == this)
                     .put("serviceConnected", instance == this)
+                    .put("startupVisible", startupVisible())
+                    .put("startupPending", startupSession)
+                    .put("startupPlacementConfirmed", startupPlacementConfirmed)
+                    .put("startupSuspended", startupSuspended)
+                    .put("startupError", startupError)
+                    .put("panelReady", panelReady)
+                    .put("barMaskEnabled", coverSystemBars)
+                    .put("barMaskTemporarilyRevealed", SystemClock.uptimeMillis() < barsRevealedUntil)
+                    .put("barMaskStatus", barMaskStatus())
                     .put("splitActionAvailability", splitActionAvailability)
                     .put("message", message).put("state", phase.name())
                     .put("failureStage", failureStage).put("dividerObserved", latest.divider)
@@ -1232,6 +1544,12 @@ public final class SplitScreenService extends AccessibilityService {
                     .put("frameMaxInsetPx", seam != null && seamFramed ? seam.maximumInsetPixels() : 0)
                     .put("framePlacementFallback", framePlacementFailed && failedFrameSignature == latest.signature())
                     .put("decorationObstructed", latest.decorationObstructed);
+            if (systemBarMask != null) {
+                JSONObject mask = systemBarMask.snapshot();
+                java.util.Iterator<String> keys = mask.keys();
+                while (keys.hasNext()) { String key = keys.next(); out.put(key, mask.get(key)); }
+            } else out.put("barMaskVisible", false);
+            if (startupBounds != null) out.put("startupBounds", boundsJson(startupBounds));
             if (seamBounds != null && seamFramed) {
                 out.put("frameBounds", boundsJson(seamBounds));
                 out.put("frameNavigationBounds", seam.navigationBounds() == null
@@ -1257,6 +1575,17 @@ public final class SplitScreenService extends AccessibilityService {
         return active && phase == Phase.RUNNING && seam != null && seamFramed
                 && decorationAuthoritative && seam.isAttachedToWindow()
                 && seam.getAlpha() > 0.99f && seam.hasDrawnGeometry() && seam.navigationPaintedPixels() > 0;
+    }
+
+    private String barMaskStatus() {
+        if (!coverSystemBars) return "Barres Android visibles.";
+        if (SystemClock.uptimeMillis() < barsRevealedUntil) return "Commandes Android affichées temporairement.";
+        if (systemBarMask != null && systemBarMask.visible())
+            return "Barres recouvertes par l’habillage. Touchez la bande pour afficher Android.";
+        if (!active) return "Masquage des barres en attente de l’écran partagé.";
+        if (latest.decorationObstructed || latest.inputMethodVisible || latest.keyguardLocked)
+            return "Commandes Android accessibles pendant l’écran système.";
+        return "Masquage des barres non confirmé sur cet appareil.";
     }
 
     private String frameStatus() {
@@ -1288,6 +1617,8 @@ public final class SplitScreenService extends AccessibilityService {
     private static final class Observation {
         SplitGeometry.Box waze, panel;
         boolean divider, wazeFocused, panelFocused, decorationObstructed;
+        boolean inputMethodVisible, focusedSystemWindow, keyguardLocked, unknownForeground;
+        String foregroundOtherPackage = "";
         int wazeWindowId = -1, panelWindowId = -1;
         int wazeLayer = Integer.MAX_VALUE, panelLayer = Integer.MAX_VALUE;
         int regionallyExcludedWindows, ignoredBelowPair, ambiguousSystemWindows;

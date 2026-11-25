@@ -78,8 +78,8 @@
                 <section data-page="general">
                     <h3>Votre tableau de bord</h3><p>Paramétrez l’application à l’arrêt. Le décor reprend la maquette. Les données affichées proviennent des services connectés.</p>
                     <label class="check"><input type="checkbox" name="keepScreen">Garder l’écran allumé</label>
-                    <label class="check"><input type="checkbox" name="wazeAuto">Ouvrir Waze au lancement d’RoadDeck</label>
                     <div class="actions"><button type="button" data-act="defaultLauncher">Choisir RoadDeck comme accueil</button><button type="button" data-act="notificationPermission">Autoriser la notification radio</button></div>
+                    <p class="note">Choisissez RoadDeck comme accueil pour que l’autoradio puisse le lancer au démarrage. L’ouverture automatique de Waze se règle dans l’onglet Waze.</p>
                     <p class="note">RoadDeck ne démarre pas la radio tout seul au démarrage. Aucun accès GPS n’est demandé : la ville météo est choisie manuellement.</p>
                     <button type="button" data-act="androidSettings">Réglages Android</button>
                 </section>
@@ -87,6 +87,12 @@
                     <h3>Waze réduit à gauche · commandes à droite</h3>
                     <p>Android attribue une partie de l’écran à Waze et l’autre à RoadDeck. Waze adapte sa carte à la fenêtre gérée par Android.</p>
                     <input type="hidden" name="wazeMode" value="split">
+                    <label class="check"><input type="checkbox" name="splitAutoStart">Ouvrir Waze au démarrage</label>
+                    <p class="note">À l’ouverture de RoadDeck, un écran animé accompagne la mise en place de Waze à gauche et des commandes à droite. Le bouton Annuler reste disponible.</p>
+                    <label class="check"><input type="checkbox" name="splitCoverBars">Masquer visuellement les barres Android</label>
+                    <p class="note">L’habillage recouvre les barres Android sans agrandir les fenêtres. Touchez une bande masquée ou le bouton Android pour réafficher les commandes pendant 8 secondes.</p>
+                    <p id="barMaskStatus" class="note" aria-live="polite">Barres Android : état non déterminé.</p>
+                    <div class="actions"><button type="button" data-act="systemBars">Afficher les commandes Android</button></div>
                     <label class="check"><input type="checkbox" name="splitFrame">Habillage autour de Waze</label>
                     <p class="note">Les marges recouvrent les bords de Waze. La carte garde la taille attribuée par Android.</p>
                     <div class="two-cols">
@@ -136,7 +142,7 @@
                     <p class="note">Données Open-Meteo, attribution CC BY 4.0. Pas de clé API pour l’usage non commercial prévu par ce projet.</p>
                 </section>
                 <section data-page="about" hidden>
-                    <h3>RoadDeck 0.5.3 — écran partagé</h3><p>Waze à gauche ; commandes RoadDeck à droite ; sessions musicales Android ; radio native ; API Tuya et Open-Meteo.</p>
+                    <h3>RoadDeck 0.5.4 — écran partagé</h3><p>Waze à gauche ; commandes RoadDeck à droite ; sessions musicales Android ; radio native ; API Tuya et Open-Meteo.</p>
                     <p class="note warning">L’affichage dépend de la prise en charge de l’écran partagé par l’autoradio. Les tests d’interface utilisent une passerelle Android simulée ; ils ne constituent pas un essai de navigation sur votre appareil.</p>
                     <div class="actions"><button type="button" data-act="diagnostics">Actualiser le diagnostic</button><button type="button" data-act="copyDiagnostics">Copier le diagnostic</button></div><pre id="diagnostics">Diagnostic disponible dans l’application Android.</pre>
                     <p class="note">Aucune publicité, aucun suivi publicitaire, aucun serveur RoadDeck. Les services sélectionnés reçoivent les requêtes nécessaires à leur fonctionnement. Waze, Spotify, Deezer et Tuya restent des applications tierces indépendantes.</p>

@@ -1,4 +1,4 @@
-<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'"><title>RoadDeck 0.5.3 — écran partagé</title><link rel="stylesheet" href="overlay.css"></head><body class="unified-frame">
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'"><title>RoadDeck 0.5.4 — écran partagé</title><link rel="stylesheet" href="overlay.css"></head><body class="unified-frame">
 <svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
 <symbol id="play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8Z"/></symbol>
 <symbol id="pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></symbol>
@@ -18,7 +18,7 @@
 </section>
 <div class="lower"><section class="gate"><div class="mini-heading"><svg><use href="#gate"/></svg><b>Portail</b></div><button id="gateButton" data-act="gate">Ouvrir</button></section><button class="weather" data-act="weather"><div class="mini-heading"><svg><use href="#weather"/></svg><b id="temperature">-- °C</b></div><span id="weatherText">Choisir une ville</span><small id="weatherStamp">Open-Meteo</small></button></div>
 <div class="media-bottom" id="panelFrameNotice" hidden><small id="panelFrameStatus" role="status" aria-live="polite"></small></div>
-<footer><button id="hideButton" data-act="collapse">‹ Waze en grand</button><button id="closeButton" data-act="stop" aria-label="Fermer les commandes et afficher Waze en grand">✕</button></footer>
+<footer><button id="hideButton" data-act="collapse">‹ Waze en grand</button><button id="systemBarsButton" data-act="systemBars" aria-label="Afficher les commandes Android pendant 8 secondes">Android</button><button id="closeButton" data-act="stop" aria-label="Fermer les commandes et afficher Waze en grand">✕</button></footer>
 </main>
 <div id="message" role="status" hidden></div>
 <section id="confirm" class="modal" role="dialog" aria-modal="true" aria-label="Confirmer la commande du portail" hidden><div><svg class="large"><use href="#gate"/></svg><h2>Ouvrir le portail ?</h2><p>Vérifiez que la zone de mouvement est libre.</p><button id="confirmGate" class="primary">Envoyer la commande</button><button id="cancelGate">Annuler</button></div></section>

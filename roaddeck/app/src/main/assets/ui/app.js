@@ -13,7 +13,7 @@
     const panelSettings = /(?:^|[?&])panelSettings=1(?:&|$)/.test(window.location ? window.location.search : '');
     const state = {
         tab: 'music', touchedTab: false, overlay: '', section: 'general', pickerReturn: null,
-        settings: {musicPackage:'com.spotify.music',musicName:'Spotify',wazeMode:'split',wazeAuto:false,splitFrame:true,
+        settings: {musicPackage:'com.spotify.music',musicName:'Spotify',wazeMode:'split',splitAutoStart:true,splitCoverBars:true,splitFrame:true,
             frameLeft:12,frameTop:12,frameRight:12,frameBottom:12,
             keepScreen:true,gateConfirm:true,radioBuffer:15,tuyaEndpoint:'https://openapi.tuyaeu.com',
             tuyaHome:'',tuyaScene:''},
@@ -215,6 +215,7 @@
         setText('wazeSetupStatus',message);
         setText('wazeStatus',state.waze.message||'');
         setText('frameStatus',typeof state.waze.frameStatus==='string'&&state.waze.frameStatus.trim()?state.waze.frameStatus:'Habillage : état non déterminé.');
+        setText('barMaskStatus',typeof state.waze.barMaskStatus==='string'&&state.waze.barMaskStatus.trim()?state.waze.barMaskStatus:'Barres Android : état non déterminé.');
     }
     function previousOrNext(direction) {
         if(state.tab==='music'){send('media',{action:direction>0?'next':'previous'});return;}
@@ -253,7 +254,7 @@
         clearSecret:()=>{send('saveSettings',{clearSecret:true});},
         weatherRefresh:()=>{if(saveSettings())send('weatherRefresh');}
     };
-    for(const type of ['wazeSetup','wazeBack','wazeClose','appInfo','notificationAccess','permissions','notificationPermission','defaultLauncher','androidSettings','wifiSettings','bluetoothSettings','diagnostics','copyDiagnostics','openMusic','openTuya'])actions[type]=()=>send(type);
+    for(const type of ['wazeSetup','wazeBack','wazeClose','systemBars','appInfo','notificationAccess','permissions','notificationPermission','defaultLauncher','androidSettings','wifiSettings','bluetoothSettings','diagnostics','copyDiagnostics','openMusic','openTuya'])actions[type]=()=>send(type);
     document.addEventListener('click',event=>{
         const section=event.target.closest('[data-section]');
         if(section){openSettings(section.dataset.section);return;}
@@ -278,7 +279,7 @@
             switch(message.type){
                 case 'settings':
                     state.settings={...state.settings,...data};fillSettings();renderMedia();renderWeather();
-                    if(!state.initialized){state.initialized=true;if(native&&!panelSettings&&data.wazeAuto&&!data.suppressAutoWaze)setTimeout(()=>{if(!state.overlay)openWaze(true);},1300);}
+                    state.initialized=true; // Automatic startup belongs to the native activity lifecycle.
                     break;
                 case 'saved': $('settingsForm').elements.tuyaSecret.value='';$('saveStatus').textContent=data.message||'Enregistré';notify(data.message);break;
                 case 'state':

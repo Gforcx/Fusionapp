@@ -25,7 +25,7 @@ final class Config {
         JSONObject j = read();
         defaults(j, "musicPackage", "com.spotify.music");
         defaults(j, "musicName", "Spotify");
-        j.put("wazeMode", "split"); defaults(j, "wazeAuto", false); defaults(j, "splitFrame", true);
+        j.put("wazeMode", "split"); defaults(j, "splitAutoStart", true); defaults(j, "splitCoverBars", true); defaults(j, "splitFrame", true);
         for (String k : Core.list("frameLeft", "frameTop", "frameRight", "frameBottom")) defaults(j, k, 12);
         defaults(j, "overlayWidth", 34);
         defaults(j, "keepScreen", true); defaults(j, "gateConfirm", true);
@@ -44,7 +44,7 @@ final class Config {
         JSONObject old = read();
         Set<String> strings = Core.set("musicPackage", "musicName", "wazeMode", "tuyaEndpoint", "tuyaClient",
             "tuyaHome", "tuyaScene", "weatherCity", "weatherLat", "weatherLon");
-        Set<String> bools = Core.set("wazeAuto", "keepScreen", "gateConfirm", "splitFrame");
+        Set<String> bools = Core.set("splitAutoStart", "splitCoverBars", "keepScreen", "gateConfirm", "splitFrame");
         for (String k : strings) if (input.has(k)) {
             String value = input.optString(k, "").trim();
             if (value.length() > 256) throw new IllegalArgumentException("Champ trop long : " + k);

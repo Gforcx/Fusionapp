@@ -30,6 +30,11 @@ public class MainActivity extends Activity {
     private final ExecutorService io=Executors.newFixedThreadPool(3);
     private final AtomicBoolean weatherBusy=new AtomicBoolean(),gateBusy=new AtomicBoolean(),diagnosticBusy=new AtomicBoolean();
     private boolean ready,visible,gateDialog;
+    private boolean resumed,autoEntryPending,autoConsumed,autoWaitingForPermission;
+    private long autoConnectDeadline,panelVisualSequence;
+    private String pendingAutoMessage;
+    private StartupLoadingView startupCover;
+    private final Runnable autoStartCheck=this::tryAutomaticSplit;
     private long nextWeatherAttempt,lastGateAt;
     private String lastState="";
     private static final String ORIGIN="https://appassets.androidplatform.net";
@@ -44,6 +49,8 @@ public class MainActivity extends Activity {
         root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));setContentView(root);
         pendingPage=getIntent().getStringExtra("roaddeckPage");
         if(isPanelSettings()&&pendingPage==null)pendingPage="general";
+        autoConsumed=state!=null&&state.getBoolean("roaddeckAutoConsumed",false);
+        prepareAutomaticEntry(getIntent(),!autoConsumed);
         WebSettings s=web.getSettings();s.setJavaScriptEnabled(true);s.setDomStorageEnabled(false);
         s.setAllowFileAccess(false);s.setAllowContentAccess(false);s.setSupportMultipleWindows(false);
         s.setMediaPlaybackRequiresUserGesture(true);s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
@@ -74,20 +81,23 @@ public class MainActivity extends Activity {
     }
     @Override protected void onStart(){
         super.onStart();visible=true;main.removeCallbacks(tick);main.post(tick);
-        if(isPanelSettings())SplitScreenService.onPanelState(true,isInMultiWindowMode());
+        if(isPanelSettings()){SplitScreenService.onPanelState(true,isInMultiWindowMode());reportPanelDrawReady();}
     }
     @Override protected void onStop(){
-        visible=false;main.removeCallbacks(tick);
+        visible=false;main.removeCallbacks(tick);main.removeCallbacks(autoStartCheck);hideStartupCover();
         if(gateConfirmation!=null){gateConfirmation.dismiss();gateConfirmation=null;}gateDialog=false;
+        if(isPanelSettings()){panelVisualSequence++;SplitScreenService.onPanelReady(false);}
         if(isPanelSettings()&&!isFinishing()&&!isChangingConfigurations())SplitScreenService.onPanelState(false,isInMultiWindowMode());
         super.onStop();
     }
     @Override protected void onResume(){
-        super.onResume();fullscreen();
+        super.onResume();resumed=true;fullscreen();
         stopService(new Intent(this,OverlayService.class));
         if(isPanelSettings())SplitScreenService.onPanelState(true,isInMultiWindowMode());
         if(ready){pushState();emit("wazeState",overlaySnapshot());}
+        scheduleAutomaticSplit();
     }
+    @Override protected void onPause(){resumed=false;main.removeCallbacks(autoStartCheck);super.onPause();}
     @Override public void onMultiWindowModeChanged(boolean inMultiWindowMode,android.content.res.Configuration configuration){
         super.onMultiWindowModeChanged(inMultiWindowMode,configuration);
         if(isPanelSettings())SplitScreenService.onPanelState(visible,inMultiWindowMode);
@@ -96,7 +106,9 @@ public class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);setIntent(intent);
         pendingPage=intent.getStringExtra("roaddeckPage");
+        prepareAutomaticEntry(intent,true);
         if(ready)showPendingPage();
+        scheduleAutomaticSplit();
     }
     private void showPendingPage(){
         String page=pendingPage;pendingPage=null;
@@ -110,9 +122,82 @@ public class MainActivity extends Activity {
         if(isPanelSettings()||getIntent().getBooleanExtra("skipWazeAuto",false))settings.put("suppressAutoWaze",true);
         return settings;
     }
-    @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)fullscreen();}
-    @Override public void onBackPressed(){if(isPanelSettings()&&!ready){finish();return;}if(web!=null)web.evaluateJavascript("window.RoadDeck&&window.RoadDeck.back()",null);}
-    @Override protected void onDestroy(){ready=false;main.removeCallbacksAndMessages(null);io.shutdownNow();if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
+    @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused){fullscreen();scheduleAutomaticSplit();}}
+    @Override public void onBackPressed(){if(startupCover!=null){cancelAutomaticSplit();return;}if(isPanelSettings()&&!ready){finish();return;}if(web!=null)web.evaluateJavascript("window.RoadDeck&&window.RoadDeck.back()",null);}
+    @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("roaddeckAutoConsumed",autoConsumed);super.onSaveInstanceState(state);}
+    @Override protected void onDestroy(){ready=false;hideStartupCover();main.removeCallbacksAndMessages(null);io.shutdownNow();if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
+
+    /** Only a new launcher/HOME entry can arm another automatic attempt. */
+    private void prepareAutomaticEntry(Intent intent,boolean allow){
+        boolean launcher=Intent.ACTION_MAIN.equals(intent.getAction())
+            &&(intent.hasCategory(Intent.CATEGORY_LAUNCHER)||intent.hasCategory(Intent.CATEGORY_HOME));
+        boolean eligible=allow&&!isPanelSettings()&&launcher&&!intent.getBooleanExtra("skipWazeAuto",false)
+            &&!intent.hasExtra("roaddeckPage")&&config.bool("splitAutoStart",true);
+        autoEntryPending=eligible;autoWaitingForPermission=false;autoConnectDeadline=0;
+        if(eligible){autoConsumed=false;showStartupCover("Préparation de votre tableau de bord…");}
+        else hideStartupCover();
+    }
+    private void scheduleAutomaticSplit(){
+        if(!autoEntryPending||!visible||!resumed||isFinishing()||isDestroyed())return;
+        main.removeCallbacks(autoStartCheck);main.post(autoStartCheck);
+    }
+    private void tryAutomaticSplit(){
+        if(!autoEntryPending||!visible||!resumed||!hasWindowFocus()||isFinishing()||isDestroyed())return;
+        if(!config.bool("splitAutoStart",true)){consumeAutomaticEntry();return;}
+        JSONObject state=overlaySnapshot();
+        if(state.optBoolean("requested")){consumeAutomaticEntry();return;}
+        if(!installed("com.waze")){
+            consumeAutomaticEntry();automaticNotice("Installez et ouvrez Waze une première fois, puis relancez RoadDeck.");return;
+        }
+        if(!state.optBoolean("serviceConnected",SplitScreenService.isConnected())){
+            if(!state.optBoolean("accessibilityGranted")){
+                if(!autoWaitingForPermission)automaticNotice("Activez l’assistant dans Réglages → Waze. Le démarrage automatique reprendra à votre retour.");
+                autoWaitingForPermission=true;autoConnectDeadline=0;hideStartupCover();
+                return; // No polling or overlay over Android permission screens.
+            }
+            autoWaitingForPermission=false;
+            long now=SystemClock.uptimeMillis();
+            if(autoConnectDeadline==0)autoConnectDeadline=now+6000;
+            if(now>=autoConnectDeadline){
+                consumeAutomaticEntry();automaticNotice("Le service RoadDeck ne s’est pas connecté. Ouvrez Réglages → Waze pour vérifier son activation.");return;
+            }
+            showStartupCover("Connexion à l’assistant RoadDeck…");
+            main.postDelayed(autoStartCheck,150);return;
+        }
+        autoEntryPending=false;autoConsumed=true;autoWaitingForPermission=false;
+        showStartupCover("Ouverture de Waze à gauche…");
+        boolean accepted=SplitScreenService.begin(this);
+        if(!accepted){hideStartupCover();automaticNotice(overlaySnapshot().optString("message","L’écran partagé n’a pas pu démarrer."));}
+        else awaitStartupHandoff(SystemClock.uptimeMillis()+2000);
+    }
+    private void awaitStartupHandoff(long until){
+        if(startupCover==null)return;
+        JSONObject state=overlaySnapshot();
+        if(!visible||state.optBoolean("startupVisible")||!state.optBoolean("requested")||SystemClock.uptimeMillis()>=until){hideStartupCover();return;}
+        main.postDelayed(()->awaitStartupHandoff(until),50);
+    }
+    private void showStartupCover(String stage){
+        if(root==null||isPanelSettings())return;
+        if(startupCover==null){startupCover=new StartupLoadingView(this,this::cancelAutomaticSplit);root.addView(startupCover,new android.widget.FrameLayout.LayoutParams(-1,-1));}
+        startupCover.setStage(stage);
+    }
+    private void hideStartupCover(){
+        if(startupCover==null)return;
+        StartupLoadingView old=startupCover;startupCover=null;old.destroy();
+        if(root!=null)root.removeView(old);
+    }
+    private void consumeAutomaticEntry(){autoEntryPending=false;autoConsumed=true;autoWaitingForPermission=false;main.removeCallbacks(autoStartCheck);hideStartupCover();}
+    private void cancelAutomaticSplit(){consumeAutomaticEntry();SplitScreenService.cancelStartup(this);}
+    private void automaticNotice(String text){if(ready)toast(text);else pendingAutoMessage=text;}
+    private void reportPanelDrawReady(){
+        if(!isPanelSettings()||!ready||!visible||web==null)return;
+        final long sequence=++panelVisualSequence;
+        main.post(()->{if(web==null||!visible||!ready||sequence!=panelVisualSequence)return;
+            web.postVisualStateCallback(sequence,new WebView.VisualStateCallback(){
+                @Override public void onComplete(long requestId){if(visible&&ready&&requestId==panelVisualSequence)SplitScreenService.onPanelReady(true);}
+            });
+        });
+    }
 
     private final class Bridge {
         @JavascriptInterface public void post(String message){
@@ -133,7 +218,7 @@ public class MainActivity extends Activity {
         String type=command.optString("type");JSONObject d=command.optJSONObject("data");if(d==null)d=new JSONObject();
         final JSONObject data=d;
         switch(type){
-            case "ready": ready=true;emit("settings",settingsForUi());emit("favorites",config.favorites());emit("weather",config.weather());emit("diagnostics",diagnostics());pushState();emit("wazeState",overlaySnapshot());main.postDelayed(this::showPendingPage,100);break;
+            case "ready": ready=true;emit("settings",settingsForUi());emit("favorites",config.favorites());emit("weather",config.weather());emit("diagnostics",diagnostics());pushState();emit("wazeState",overlaySnapshot());main.postDelayed(this::showPendingPage,100);reportPanelDrawReady();if(pendingAutoMessage!=null){toast(pendingAutoMessage);pendingAutoMessage=null;}break;
             case "saveSettings": config.save(d);SplitScreenService.settingsChanged();applyScreenSettings();nextWeatherAttempt=0;emit("settings",config.publicSettings());emit("saved",obj("message","Réglages enregistrés sur cet appareil"));pushState();break;
             case "openWaze": openWaze(d);break;
             case "permissions": musicPermissionHelp();break;
@@ -142,6 +227,7 @@ public class MainActivity extends Activity {
             case "wazeSetup": requestSplitSetup();break;
             case "wazeClose": SplitScreenService.closePair(this);emit("wazeState",overlaySnapshot());break;
             case "framePreview": SplitScreenService.previewFrame(this);emit("wazeState",overlaySnapshot());break;
+            case "systemBars": SplitScreenService.revealSystemBars(this);emit("wazeState",overlaySnapshot());break;
             case "closePanelSettings": if(isPanelSettings())finish();break;
             case "wazeBack": toast("Utilisez le bouton Retour d’Android dans Waze.");break;
             case "wazeLayout": case "overlay": break; // Legacy UI commands do not control Waze's window.
@@ -237,6 +323,7 @@ public class MainActivity extends Activity {
             else requestSplitSetup();
             return;
         }
+        consumeAutomaticEntry();
         boolean started=SplitScreenService.begin(this);
         if(started&&isPanelSettings()&&SplitScreenService.snapshot(this).optBoolean("active"))finish();
         emit("wazeState",overlaySnapshot());

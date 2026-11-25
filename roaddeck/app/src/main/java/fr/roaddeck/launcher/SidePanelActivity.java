@@ -17,6 +17,7 @@ import org.json.*;
 /** An ordinary Android activity occupying the side of a real split-screen pair. */
 public final class SidePanelActivity extends Activity {
     private boolean ready,visible,destroyed,openingSettings;
+    private long panelVisualSequence;
     private Config config;
     private MusicController music;
     private TuyaClient tuya;
@@ -66,7 +67,7 @@ public final class SidePanelActivity extends Activity {
     }
     @Override protected void onStart(){
         super.onStart();visible=true;openingSettings=false;lastSnapshot="";lastFrameSnapshot="";nextWeatherAttempt=0;
-        if(ready){pushInitial();pushState();}
+        if(ready){pushInitial();pushState();reportPanelDrawReady();}
         main.removeCallbacks(tick);main.post(tick);
         SplitScreenService.onPanelState(true,isInMultiWindowMode());
     }
@@ -74,21 +75,23 @@ public final class SidePanelActivity extends Activity {
     @Override protected void onNewIntent(Intent intent){
         super.onNewIntent(intent);setIntent(intent);
         SplitScreenService.onPanelState(visible,isInMultiWindowMode());
-        if(ready)emit("wazeState",SplitScreenService.snapshot(this));
+        if(ready){emit("wazeState",SplitScreenService.snapshot(this));reportPanelDrawReady();}
     }
     @Override protected void onStop(){
         visible=false;main.removeCallbacks(tick);cancelGateConfirmation();
+        panelVisualSequence++;SplitScreenService.onPanelReady(false);
         if(!openingSettings&&!isChangingConfigurations())SplitScreenService.onPanelState(false,isInMultiWindowMode());
         super.onStop();
     }
     @Override public void onConfigurationChanged(Configuration configuration){
         super.onConfigurationChanged(configuration);fullscreen();
         SplitScreenService.onPanelState(visible,isInMultiWindowMode());
+        reportPanelDrawReady();
     }
     @Override public void onMultiWindowModeChanged(boolean inMultiWindowMode,Configuration configuration){
         super.onMultiWindowModeChanged(inMultiWindowMode,configuration);
         SplitScreenService.onPanelState(visible,inMultiWindowMode);
-        if(ready)emit("wazeState",SplitScreenService.snapshot(this));
+        if(ready){emit("wazeState",SplitScreenService.snapshot(this));reportPanelDrawReady();}
     }
     @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused)fullscreen();}
     @Override public void onBackPressed(){SplitScreenService.closePair(this);}
@@ -111,7 +114,8 @@ public final class SidePanelActivity extends Activity {
     private void handle(JSONObject command) throws Exception{
         String type=command.optString("type");JSONObject data=command.optJSONObject("data");if(data==null)data=new JSONObject();
         switch(type){
-            case "ready": ready=true;pushInitial();pushState();emit("wazeState",SplitScreenService.snapshot(this));break;
+            case "ready": ready=true;pushInitial();pushState();emit("wazeState",SplitScreenService.snapshot(this));reportPanelDrawReady();break;
+            case "systemBars": SplitScreenService.revealSystemBars(this);emit("wazeState",SplitScreenService.snapshot(this));break;
             case "collapse":case "stop":case "close":case "waze":SplitScreenService.closePair(this);break;
             case "settings":openSettings(data.optString("page","waze"));break;
             case "radioDirectory":openSettings("radioDirectory");break;
@@ -143,6 +147,15 @@ public final class SidePanelActivity extends Activity {
                 gateToken="";triggerGate();break;
             default:throw new IllegalArgumentException("Commande du panneau inconnue");
         }
+    }
+    private void reportPanelDrawReady(){
+        if(destroyed||!ready||!visible||web==null)return;
+        final long sequence=++panelVisualSequence;
+        main.post(()->{if(destroyed||web==null||!visible||!ready||sequence!=panelVisualSequence)return;
+            web.postVisualStateCallback(sequence,new WebView.VisualStateCallback(){
+                @Override public void onComplete(long requestId){if(!destroyed&&visible&&ready&&requestId==panelVisualSequence)SplitScreenService.onPanelReady(true);}
+            });
+        });
     }
     private void pushInitial(){
         emit("settings",obj("musicName",config.string("musicName","Spotify"),"radioBuffer",config.integer("radioBuffer",15),

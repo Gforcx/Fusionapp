@@ -16,7 +16,7 @@ check(!html.includes('name="overlayWidth"'), 'No fake application-owned split pe
 check(html.includes('Activer l’assistant d’écran partagé'), 'Accessibility setup action is explained');
 check(html.includes('Android contrôle la séparation'), 'System-controlled divider is disclosed');
 check(!/par-dessus|sans bordure|mode overlay/.test(html), 'No obsolete overlay or borderless promise');
-check(html.includes('RoadDeck 0.5.3') && panelHtml.includes('RoadDeck 0.5.3'), 'Version labels agree');
+check(html.includes('RoadDeck 0.5.4') && panelHtml.includes('RoadDeck 0.5.4'), 'Version labels agree');
 check(html.includes('type="checkbox" name="splitFrame">Habillage autour de Waze'), 'Shared frame can be disabled from Waze settings');
 for (const field of ['frameLeft','frameTop','frameRight','frameBottom']) {
     check(html.includes('type="number" name="'+field+'" min="0" max="40" step="1" required'), 'Bounded margin input: ' + field);
@@ -24,6 +24,11 @@ for (const field of ['frameLeft','frameTop','frameRight','frameBottom']) {
 check(html.includes('Les marges recouvrent les bords de Waze. La carte garde la taille attribuée par Android.'), 'Covered map edges are disclosed without promising a resized window');
 check(html.includes('data-act="framePreview">Tester l’habillage (5 s)'), 'Five-second frame preview requires an explicit button');
 check(html.includes('id="frameStatus" class="note" aria-live="polite"'), 'Native frame status has its own accessible settings field');
+check(html.includes('type="checkbox" name="splitAutoStart">Ouvrir Waze au démarrage'), 'Automatic native startup can be disabled in Waze settings');
+check(html.includes('type="checkbox" name="splitCoverBars">Masquer visuellement les barres Android'), 'System bar covering has an explicit setting');
+check(html.includes('L’habillage recouvre les barres Android sans agrandir les fenêtres.'), 'Visual cover does not claim to resize or remove native bars');
+check(html.includes('id="barMaskStatus" class="note" aria-live="polite"'), 'Native bar covering status can be announced');
+check(panelHtml.includes('id="systemBarsButton" data-act="systemBars"'), 'The right panel always offers access to Android controls');
 check(panelHtml.includes('‹ Waze en grand'), 'Sidebar collapse wording describes fullscreen navigation');
 check(css.includes('.panel-settings .two-cols{grid-template-columns:minmax(0,1fr)'), 'Compact settings form has one column');
 check(css.includes('.panel-settings>:not(.overlay):not(.toast){display:none!important}'), 'Compact mode hides the launcher background');
@@ -43,6 +48,13 @@ for (const width of [260, 360, 512]) {
     app.clickAction('close');
     check(app.calls[app.calls.length-1].type === 'closePanelSettings', 'Close exits settings activity at ' + width);
 }
+
+const home = load('app.js');
+home.context.RoadDeck.receive({type:'settings',data:{splitAutoStart:true,wazeAuto:true}});
+home.flushTimeouts();
+home.context.RoadDeck.receive({type:'settings',data:{splitAutoStart:true}});
+home.flushTimeouts();
+check(!home.calls.some(c => c.type === 'openWaze'), 'Receiving settings in the home WebView cannot duplicate the native automatic startup');
 
 const compact = load('app.js', {search:'?panelSettings=1', width:360, height:600});
 const rd = compact.context.RoadDeck;
@@ -68,6 +80,13 @@ rd.receive({type:'wazeState',data:{frameVisible:true,frameStatus:{message:'not a
 check(compact.get('frameStatus').textContent === 'Habillage : état non déterminé.', 'Malformed frame status remains unknown');
 rd.receive({type:'wazeState',data:{frameEnabled:true}});
 check(compact.get('frameStatus').textContent === 'Habillage : état non déterminé.', 'Missing frame status remains unknown even when enabled');
+rd.receive({type:'wazeState',data:{barMaskVisible:true,barMaskStatus:'Barres Android recouvertes par l’habillage.'}});
+check(compact.get('barMaskStatus').textContent === 'Barres Android recouvertes par l’habillage.', 'Settings display the native bar cover status verbatim');
+rd.receive({type:'wazeState',data:{barMaskVisible:true,barMaskStatus:{text:'invalid'}}});
+check(compact.get('barMaskStatus').textContent === 'Barres Android : état non déterminé.', 'A malformed status cannot claim that native bars are hidden');
+const systemRequestBefore=compact.calls.length;
+compact.clickAction('systemBars');
+check(compact.calls.length===systemRequestBefore+1&&compact.calls[systemRequestBefore].type==='systemBars', 'The settings Android button requests only temporary bar access');
 rd.receive({type:'diagnostics',data:{sdk:29,android:'10',accessibilityGranted:true,accessibilityConnected:true,wazePanel:{mode:'split',active:true,requested:false,message:'Écran partagé actif.'}}});
 const diagnostic = compact.get('diagnostics').textContent;
 check(diagnostic.includes('Mode : écran partagé') && diagnostic.includes('Autorisation d’accessibilité accordée : oui') && diagnostic.includes('Service d’accessibilité connecté : oui'), 'Diagnostics separate authorization and connection state');
@@ -103,13 +122,20 @@ check(compact.get('diagnostics').textContent.includes('Habillage : état non dé
 
 const frameInput = compact.get('settingsForm').elements.splitFrame;
 frameInput.name = 'splitFrame';frameInput.type = 'checkbox';
+const autoInput=compact.get('settingsForm').elements.splitAutoStart;
+autoInput.name='splitAutoStart';autoInput.type='checkbox';
+const barsInput=compact.get('settingsForm').elements.splitCoverBars;
+barsInput.name='splitCoverBars';barsInput.type='checkbox';
 const marginInputs = ['frameLeft','frameTop','frameRight','frameBottom'].map(name => {
     const input = compact.get('settingsForm').elements[name];
     input.name = name;input.type = 'number';return input;
 });
-compact.get('settingsForm').querySelectorAll = selector => selector === '[name]' ? [frameInput].concat(marginInputs) : [];
+compact.get('settingsForm').querySelectorAll = selector => selector === '[name]' ? [frameInput,autoInput,barsInput].concat(marginInputs) : [];
 rd.receive({type:'settings',data:{splitFrame:true}});
 check(frameInput.checked === true, 'Saved enabled frame appears checked in the settings form');
+check(autoInput.checked===true&&barsInput.checked===true, 'New startup and bar cover defaults are enabled even without older preferences');
+rd.receive({type:'settings',data:{splitAutoStart:false,splitCoverBars:false}});
+check(autoInput.checked===false&&barsInput.checked===false, 'Explicit opt-outs are shown instead of being overwritten by defaults');
 check(marginInputs.every(input => input.value === '12'), 'All four margin inputs default to 12');
 rd.receive({type:'settings',data:{splitFrame:false}});
 check(frameInput.checked === false, 'Saved disabled frame appears unchecked in the settings form');
@@ -121,6 +147,7 @@ const before = compact.calls.length;
 compact.clickAction('testWaze');
 check(compact.calls[before].type === 'saveSettings' && compact.calls[before].data.wazeMode === 'split', 'Launch saves split mode first');
 check(compact.calls[before].data.splitFrame === false, 'Disabled decoration is saved as a boolean without changing split mode');
+check(compact.calls[before].data.splitAutoStart===false&&compact.calls[before].data.splitCoverBars===false, 'Both opt-outs are saved as false booleans');
 check(marginInputs.every(input => typeof compact.calls[before].data[input.name] === 'number') && compact.calls[before].data.frameLeft === 0 && compact.calls[before].data.frameRight === 40, 'Margin values cross the Android bridge as numbers, preserving both bounds');
 check(!Object.prototype.hasOwnProperty.call(compact.calls[before].data,'overlayWidth'), 'No invented split ratio sent to Android');
 check(!compact.calls.slice(before).some(c => c.type === 'closePanelSettings'), 'Activity stays visible until native split launch');
@@ -179,6 +206,8 @@ check(sidebar.get('panelFrameNotice').hidden === true, 'Inactive split mode adds
 sidebar.context.RoadDeckOverlay.receive({type:'wazeState',data:{active:true,frameEnabled:true,frameVisible:false,decorationObstructed:true,frameStatus:{message:'not a status'}}});
 check(sidebar.get('panelFrameNotice').hidden === true && sidebar.get('panelFrameStatus').textContent === '', 'Malformed native status never appears as an object or inferred warning');
 check(sidebar.calls.length === decorationCalls, 'All frame status updates remain read-only');
+sidebar.clickAction('systemBars');
+check(sidebar.calls[sidebar.calls.length-1].type==='systemBars'&&Object.keys(sidebar.calls[sidebar.calls.length-1].data).length===0, 'Panel Android button sends one reveal request without changing or closing the split');
 sidebar.clickAction('gate');
 check(sidebar.calls[sidebar.calls.length-1].type === 'gate', 'Gate still begins with native confirmation request');
 sidebar.context.RoadDeckOverlay.receive({type:'gateConfirm',data:{token:'one-use-test-token'}});
