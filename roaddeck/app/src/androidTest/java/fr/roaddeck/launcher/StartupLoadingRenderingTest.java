@@ -75,14 +75,18 @@ public final class StartupLoadingRenderingTest {
             StartupLoadingView view = new StartupLoadingView(context, null);
             view.setStage("Ouverture de Waze…");
             Bitmap before = render(view, width, height, 0.0f);
+            Bitmap repeated = render(view, width, height, 0.0f);
             Button cancel = view.cancelButtonForTesting();
             Rect beforeBounds = new Rect(0, 0, cancel.getWidth(), cancel.getHeight());
             view.offsetDescendantRectToMyCoords(cancel, beforeBounds);
             Bitmap after = render(view, width, height, 0.31f);
             try {
                 save("bitmap-startup-animation-before.png", before);
+                save("bitmap-startup-animation-repeated.png", repeated);
                 save("bitmap-startup-animation-after.png", after);
                 assertOpaque(before);
+                assertTrue("Redrawing the same phase must not change paint alpha or layout",
+                        before.sameAs(repeated));
                 assertOpaque(after);
                 int[] a = new int[width * height], b = new int[width * height];
                 before.getPixels(a, 0, width, 0, 0, width, height);
@@ -102,6 +106,7 @@ public final class StartupLoadingRenderingTest {
             } finally {
                 view.destroy();
                 before.recycle();
+                repeated.recycle();
                 after.recycle();
             }
         });

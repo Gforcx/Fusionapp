@@ -15,6 +15,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.Region;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.Settings;
@@ -69,6 +70,7 @@ public final class SplitScreenAndroid10Test {
     private UiAutomation automation;
     private DomProbe domProbe;
     private Rect testedNavigationContent;
+    private List<Rect> independentlyExpectedBars;
     private String fixtureUserId;
 
     @Rule public final TestWatcher evidence = new TestWatcher() {
@@ -393,20 +395,17 @@ public final class SplitScreenAndroid10Test {
     }
 
     @Test public void automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery() throws Exception {
-        MainActivity main = launchAutomaticEntry();
-        captureStartup("startup-auto-cancel");
-        UiObject2 cancel = device.findObject(By.pkg(ROADDECK).desc("Annuler le démarrage"));
-        assertNotNull("A native Cancel action must be visible during real setup", cancel);
-        Rect cancelBounds = cancel.getVisibleBounds();
-        assertTrue("Cancel must have an on-screen touch target", !cancelBounds.isEmpty());
-        clearAutomationNodeCache();
-        assertTrue("Cancel touch injection failed", device.click(cancelBounds.centerX(), cancelBounds.centerY()));
+        // startActivitySync waits for UI idle and can return only after most of
+        // setup is complete. Observe a normal asynchronous launcher entry instead
+        // and tap its real native cancel control before taking expensive captures.
+        launchAutomaticEntryWithoutWaitingForIdle();
+        tapStartupCancelWhileVisible();
         await("startup cancelled and recovery visible", 12000, () -> {
             JSONObject state = snapshot();
             return "IDLE".equals(state.optString("state")) && !state.optBoolean("requested")
                     && !state.optBoolean("startupPending") && findActivity(MainActivity.class) != null;
         });
-        main = awaitActivity(MainActivity.class, 10000);
+        MainActivity main = awaitActivity(MainActivity.class, 10000);
         final MainActivity recovery = main;
         await("cancel returns to readable Waze settings", 15000, () -> {
             JSONObject page = readDomElement(recovery, "wazeSetupStatus");
@@ -418,7 +417,16 @@ public final class SplitScreenAndroid10Test {
 
         // A genuine new launcher entry re-arms exactly one attempt. No button,
         // JavaScript handler, service begin(), or shell split command starts it.
-        main = launchAutomaticEntry();
+        launchAutomaticEntryWithoutWaitingForIdle();
+        AtomicReference<MainActivity> automaticMain = new AtomicReference<>();
+        await("fresh launcher entry activity", 10000, () -> {
+            MainActivity candidate = findActivity(MainActivity.class);
+            if (candidate == null || !Intent.ACTION_MAIN.equals(candidate.getIntent().getAction())
+                    || !candidate.getIntent().hasCategory(Intent.CATEGORY_LAUNCHER)
+                    || candidate.getIntent().getBooleanExtra("skipWazeAuto", false)) return false;
+            automaticMain.set(candidate);return true;
+        });
+        main = automaticMain.get();
         captureStartup("startup-automatic");
         await("automatic native pair and right panel ready", 65000, () -> {
             JSONObject state = snapshot();
@@ -505,6 +513,73 @@ public final class SplitScreenAndroid10Test {
         return (MainActivity) instrumentation.startActivitySync(launch);
     }
 
+    private void launchAutomaticEntryWithoutWaitingForIdle() {
+        Intent launch = new Intent(context, MainActivity.class).setAction(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        instrumentation.runOnMainSync(() -> context.startActivity(launch));
+    }
+
+    private void tapStartupCancelWhileVisible() throws Exception {
+        AtomicReference<Rect> measured = new AtomicReference<>();
+        await("fresh native cancel coordinates while startup is visible", 10000, () -> {
+            if (!snapshot().optBoolean("startupVisible")) return false;
+            Rect bounds = currentStartupCancelBounds();
+            if (bounds == null || bounds.isEmpty() || !new Rect(0, 0,
+                    device.getDisplayWidth(), device.getDisplayHeight()).contains(bounds)) return false;
+            if (!snapshot().optBoolean("startupVisible")) return false;
+            measured.set(bounds);return true;
+        });
+        Rect bounds = measured.get();
+        JSONObject before = snapshot();
+        assertTrue("The curtain must still be visible at the measured touch", before.optBoolean("startupVisible"));
+        long tapTime = SystemClock.uptimeMillis();
+        assertTrue("Cancel touch injection failed", device.click(bounds.centerX(), bounds.centerY()));
+        before.put("fixture", true).put("realWazeTested", false).put("tapUptimeMs", tapTime)
+                .put("cancelButtonBounds", new JSONObject().put("left", bounds.left).put("top", bounds.top)
+                        .put("right", bounds.right).put("bottom", bounds.bottom))
+                .put("touch", new JSONObject().put("x", bounds.centerX()).put("y", bounds.centerY()))
+                .put("testNote", "fresh native accessibility bounds read from the loading overlay, then a real screen tap; no screenshot was taken before cancelling");
+        try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), "startup-auto-cancel.json"))) {
+            output.write(before.toString(2).getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private Rect currentStartupCancelBounds() {
+        // Read only the native overlay tree. UiObject2 can hold a cached node
+        // after a transition removes the window, and its broad search also waits
+        // for unrelated WebViews. No node reference survives this measurement.
+        for (AccessibilityWindowInfo window : automation.getWindows()) {
+            AccessibilityNodeInfo root = null;
+            try {
+                if (window.getType() != AccessibilityWindowInfo.TYPE_ACCESSIBILITY_OVERLAY) continue;
+                root = window.getRoot();
+                if (root == null || root.getPackageName() == null || !ROADDECK.contentEquals(root.getPackageName())) continue;
+                Rect result = nativeCancelBounds(root);
+                if (result != null) return result;
+            } finally {
+                if (root != null) root.recycle();
+                window.recycle();
+            }
+        }
+        return null;
+    }
+
+    private Rect nativeCancelBounds(AccessibilityNodeInfo node) {
+        if (node.getContentDescription() != null && "Annuler le démarrage".contentEquals(node.getContentDescription())
+                && node.getClassName() != null && "android.widget.Button".contentEquals(node.getClassName())
+                && node.isEnabled() && node.isClickable() && node.isVisibleToUser()) {
+            Rect result = new Rect();node.getBoundsInScreen(result);return result;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            try { Rect result = nativeCancelBounds(child);if (result != null) return result; }
+            finally { child.recycle(); }
+        }
+        return null;
+    }
+
     private void assertIdleWithoutRestart(long duration) {
         long until = SystemClock.uptimeMillis() + duration;
         do {
@@ -583,13 +658,31 @@ public final class SplitScreenAndroid10Test {
                     device.getDisplayWidth(), device.getDisplayHeight()).contains(band));
             bands.add(band);
         }
+        Rect content = corner(0).getParent().getVisibleBounds();
+        testedNavigationContent = new Rect(content);
+        assertTrue("The fixture must retain a native content rectangle inside its window", navigation.contains(content));
+        assertTrue("The controlled API29 fixture exposes both a top status strip and a bottom navigation strip",
+                content.top > 0 && content.bottom < device.getDisplayHeight());
+        independentlyExpectedBars = new ArrayList<>();
+        independentlyExpectedBars.add(new Rect(0, 0, device.getDisplayWidth(), content.top));
+        independentlyExpectedBars.add(new Rect(0, content.bottom, device.getDisplayWidth(), device.getDisplayHeight()));
+        for (Rect expected : independentlyExpectedBars) {
+            Region missing = new Region(expected);
+            for (Rect actual : bands) missing.op(actual, Region.Op.DIFFERENCE);
+            assertTrue("Mask bounds must cover the independently measured system strip " + expected
+                    + "; reported masks=" + bands, missing.isEmpty());
+        }
+        // Check all independently measured strips too. A reported top-only mask
+        // cannot pass while Android's bottom buttons remain visible.
+        List<Rect> checkedBands = new ArrayList<>(bands);
+        for (Rect expected : independentlyExpectedBars) if (!checkedBands.contains(expected)) checkedBands.add(expected);
         File on = new File(evidenceDirectory(), "system-bars-masked.png");
         await("actual opaque mask pixels over every measured bar", 5000, () -> {
             if (!device.takeScreenshot(on)) return false;
             Bitmap bitmap = BitmapFactory.decodeFile(on.getAbsolutePath());
             if (bitmap == null) return false;
             boolean covered = true;
-            for (Rect band : bands) {
+            for (Rect band : checkedBands) {
                 int dark = 0, total = 0;
                 for (int y = band.top + 1; y < band.bottom - 1; y += 2)
                     for (int x = band.left + 1; x < band.right - 1; x += 2) {
@@ -614,7 +707,7 @@ public final class SplitScreenAndroid10Test {
                 if (masked != null) masked.recycle();if (revealed != null) revealed.recycle();return false;
             }
             int changed = 0;
-            for (Rect band : bands)
+            for (Rect band : checkedBands)
                 for (int y = band.top + 1; y < band.bottom - 1; y += 2)
                     for (int x = band.left + 1; x < band.right - 1; x += 2) {
                         int a = masked.getPixel(x, y), b = revealed.getPixel(x, y);
@@ -1019,6 +1112,13 @@ public final class SplitScreenAndroid10Test {
                 Rect b = testedNavigationContent;
                 state.put("fixtureContentBounds", new JSONObject().put("left", b.left).put("top", b.top)
                         .put("right", b.right).put("bottom", b.bottom));
+            }
+            if (independentlyExpectedBars != null) {
+                JSONArray bars = new JSONArray();
+                for (Rect b : independentlyExpectedBars)
+                    bars.put(new JSONObject().put("left", b.left).put("top", b.top)
+                            .put("right", b.right).put("bottom", b.bottom));
+                state.put("independentlyExpectedSystemBars", bars);
             }
             try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), name))) {
                 output.write(state.toString(2).getBytes(StandardCharsets.UTF_8));

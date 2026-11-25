@@ -42,6 +42,7 @@ public final class SidePanelActivity extends Activity {
         web=new WebView(this);web.setBackgroundColor(0xff0c1020);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);web.setVerticalScrollBarEnabled(false);web.setHorizontalScrollBarEnabled(false);
         root.addView(web,new FrameLayout.LayoutParams(-1,-1));setContentView(root);
+        installInsetsReporting();
         WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(false);
         settings.setAllowFileAccess(false);settings.setAllowContentAccess(false);settings.setSupportMultipleWindows(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);settings.setMediaPlaybackRequiresUserGesture(true);
@@ -60,6 +61,22 @@ public final class SidePanelActivity extends Activity {
         });
         web.addJavascriptInterface(new Bridge(),"Native");fullscreen();
         web.loadUrl("https://appassets.androidplatform.net/assets/ui/overlay.html");
+    }
+    private void installInsetsReporting(){
+        final View decor=getWindow().getDecorView();
+        final Runnable report=()->{
+            if(!isFinishing()&&!isDestroyed()&&decor.getWindowVisibility()==View.VISIBLE)
+                SplitScreenService.onAppInsets(this);
+        };
+        // A zero-size child observes dispatch before the WebView. It neither
+        // replaces a parent's listener nor consumes or modifies any insets.
+        View observer=new View(this);
+        observer.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        observer.setOnApplyWindowInsetsListener((view,insets)->{decor.post(report);return insets;});
+        root.addView(observer,0,new FrameLayout.LayoutParams(0,0));
+        decor.addOnLayoutChangeListener((view,l,t,r,b,oldL,oldT,oldR,oldB)->report.run());
+        observer.requestApplyInsets();
+        decor.post(report);
     }
     private void fullscreen(){
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);

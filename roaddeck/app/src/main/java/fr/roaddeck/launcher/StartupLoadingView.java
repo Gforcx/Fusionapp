@@ -270,6 +270,9 @@ public final class StartupLoadingView extends FrameLayout {
         }
 
         @Override protected void onDraw(Canvas canvas) {
+            // setShader does not reset Paint alpha. The horizon below deliberately
+            // uses a translucent color; never carry that alpha into the next frame.
+            paint.setAlpha(255);
             paint.setShader(background);
             canvas.drawRect(0, 0, getWidth(), getHeight(), paint);
             paint.setShader(halo);

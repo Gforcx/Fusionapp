@@ -87,8 +87,9 @@ public final class SplitScreenService extends AccessibilityService {
     private int seamWindowId = -1, decorationSignature, failedFrameSignature;
     private boolean framePlacementFailed;
     private int frameLeft = 12, frameTop = 12, frameRight = 12, frameBottom = 12;
-    private int barLeft, barTop, barRight, barBottom, insetScreenWidth, insetScreenHeight;
+    private int barLeft, barTop, barRight, barBottom, insetScreenWidth, insetScreenHeight, insetScreenRotation;
     private boolean barInsetsObserved;
+    private String barInsetsSource = "";
     private long previewUntil;
     private SplitGeometry.Box lastRequestedFrameBounds, lastPlacedFrameBounds;
     private SystemBarMask systemBarMask;
@@ -163,7 +164,7 @@ public final class SplitScreenService extends AccessibilityService {
             return;
         }
         service.readFrameSettings();
-        service.readBarInsets(((Activity) context).getWindow().getDecorView().getRootWindowInsets());
+        service.readBarInsets((Activity) context);
         service.latest = service.observe();
         if (!service.frameEnabled || service.phase != Phase.RUNNING
                 || !service.confirmedPair(service.latest)) {
@@ -196,9 +197,22 @@ public final class SplitScreenService extends AccessibilityService {
             service.publish();
             return false;
         }
-        service.readBarInsets(((Activity) context).getWindow().getDecorView().getRootWindowInsets());
+        service.readBarInsets((Activity) context);
         service.refreshSplitActionAvailability();
         return service.startPair((Activity) context);
+    }
+
+    /** Only application decor insets describe the reserved system-bar space.
+     * Accessibility overlay insets may be zero even while Android's bars remain.
+     */
+    public static void onAppInsets(Activity activity) {
+        SplitScreenService service = instance;
+        if (service == null || activity == null) return;
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            service.handler.post(() -> onAppInsets(activity));
+            return;
+        }
+        service.readBarInsets(activity);
     }
 
     /** A rendered right panel, not a timer, permits the startup curtain to leave. */
@@ -543,10 +557,6 @@ public final class SplitScreenService extends AccessibilityService {
         final StartupLoadingView candidate = startupView;
         candidate.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        candidate.setOnApplyWindowInsetsListener((view, insets) -> {
-            readBarInsets(insets);
-            return insets;
-        });
         candidate.addOnLayoutChangeListener((view, left, top, right, bottom, oldL, oldT, oldR, oldB) -> {
             if (view != startupView || startupBounds == null) return;
             captureStartupWindowId();
@@ -1248,26 +1258,48 @@ public final class SplitScreenService extends AccessibilityService {
     }
 
     @SuppressWarnings("deprecation")
-    private void readBarInsets(WindowInsets insets) {
-        if (insets == null || windowManager == null) return;
+    private void readBarInsets(Activity activity) {
+        if (activity == null || activity.isDestroyed() || windowManager == null) return;
+        View decor = activity.getWindow().getDecorView();
+        if (!decor.isAttachedToWindow() || decor.getWidth() <= 0 || decor.getHeight() <= 0) return;
+        WindowInsets insets = decor.getRootWindowInsets();
+        if (insets == null) return;
         Point display = new Point();
         windowManager.getDefaultDisplay().getRealSize(display);
-        int left = Math.max(insets.getStableInsetLeft(), insets.getSystemWindowInsetLeft());
-        int top = Math.max(insets.getStableInsetTop(), insets.getSystemWindowInsetTop());
-        int right = Math.max(insets.getStableInsetRight(), insets.getSystemWindowInsetRight());
-        int bottom = Math.max(insets.getStableInsetBottom(), insets.getSystemWindowInsetBottom());
+        int rotation = windowManager.getDefaultDisplay().getRotation();
+        // Stable activity insets retain the navigation band in immersive split
+        // mode. Transient system-window insets can include the keyboard and must
+        // never become a mask. Overlay callbacks must not overwrite these values.
+        boolean sameDisplay = barInsetsObserved && insetScreenWidth == display.x
+                && insetScreenHeight == display.y && insetScreenRotation == rotation;
+        int[] origin = new int[2];
+        decor.getLocationOnScreen(origin);
+        // Insets are local to this task. A right-hand panel cannot disprove a
+        // bar at the physical left edge, which it does not touch. Retain those
+        // previously measured sides only for the exact same display rotation.
+        int left = origin[0] <= 1 ? insets.getStableInsetLeft() : sameDisplay ? barLeft : 0;
+        int top = origin[1] <= 1 ? insets.getStableInsetTop() : sameDisplay ? barTop : 0;
+        int right = origin[0] + decor.getWidth() >= display.x - 1
+                ? insets.getStableInsetRight() : sameDisplay ? barRight : 0;
+        int bottom = origin[1] + decor.getHeight() >= display.y - 1
+                ? insets.getStableInsetBottom() : sameDisplay ? barBottom : 0;
+        barInsetsSource = activity.getClass().getSimpleName();
         if (barInsetsObserved && barLeft == left && barTop == top && barRight == right && barBottom == bottom
-                && insetScreenWidth == display.x && insetScreenHeight == display.y) return;
+                && insetScreenWidth == display.x && insetScreenHeight == display.y
+                && insetScreenRotation == rotation) return;
         barInsetsObserved = true;
         barLeft = left; barTop = top; barRight = right; barBottom = bottom;
         insetScreenWidth = display.x; insetScreenHeight = display.y;
+        insetScreenRotation = rotation;
         hideDecoration();
+        if (systemBarMask != null) systemBarMask.hide();
         if (phase == Phase.RUNNING) enqueue(0);
     }
 
     private void addBarExclusions(Observation observation) {
         int width = observation.screenWidth, height = observation.screenHeight;
-        if (!barInsetsObserved || width != insetScreenWidth || height != insetScreenHeight) return;
+        if (!barInsetsObserved || width != insetScreenWidth || height != insetScreenHeight
+                || windowManager.getDefaultDisplay().getRotation() != insetScreenRotation) return;
         if (barLeft > 0) observation.barExclusions.add(new SplitGeometry.Box(0, 0, Math.min(width, barLeft), height));
         if (barTop > 0) observation.barExclusions.add(new SplitGeometry.Box(0, 0, width, Math.min(height, barTop)));
         if (barRight > 0) observation.barExclusions.add(new SplitGeometry.Box(Math.max(0, width - barRight), 0, width, height));
@@ -1436,10 +1468,6 @@ public final class SplitScreenService extends AccessibilityService {
                 seam = new SplitFrameView(this, view -> {
                     if (view == seam) publish();
                 });
-                seam.setOnApplyWindowInsetsListener((view, insets) -> {
-                    readBarInsets(insets);
-                    return insets;
-                });
                 seam.setAlpha(0f);
                 seam.setGeometry(bounds, observation.waze, observation.panel, gap, framed,
                         observation.systemExclusions, frameLeft, frameTop, frameRight, frameBottom, preview);
@@ -1566,6 +1594,9 @@ public final class SplitScreenService extends AccessibilityService {
                     .put("frameIgnoredBelowPair", latest.ignoredBelowPair)
                     .put("frameAmbiguousSystemWindows", latest.ambiguousSystemWindows)
                     .put("frameBarInsetsObserved", barInsetsObserved)
+                    .put("barInsetsSource", barInsetsSource)
+                    .put("barStableInsets", new JSONObject().put("left", barLeft).put("top", barTop)
+                            .put("right", barRight).put("bottom", barBottom))
                     .put("frameMaxInsetPx", seam != null && seamFramed ? seam.maximumInsetPixels() : 0)
                     .put("framePlacementFallback", framePlacementFailed && failedFrameSignature == latest.signature())
                     .put("decorationObstructed", latest.decorationObstructed);
