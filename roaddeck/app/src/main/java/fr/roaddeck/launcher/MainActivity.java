@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
     private final ExecutorService io=Executors.newFixedThreadPool(3);
     private final AtomicBoolean weatherBusy=new AtomicBoolean(),gateBusy=new AtomicBoolean(),diagnosticBusy=new AtomicBoolean();
     private boolean ready,visible,gateDialog;
+    private volatile boolean bridgeClosed;
     private boolean resumed,autoEntryPending,autoConsumed,autoWaitingForPermission;
     private long autoConnectDeadline,panelVisualSequence;
     private String pendingAutoMessage;
@@ -111,6 +112,7 @@ public class MainActivity extends Activity {
         scheduleAutomaticSplit();
     }
     private void showPendingPage(){
+        if(!ready||web==null||bridgeClosed||isFinishing()||isDestroyed())return;
         String page=pendingPage;pendingPage=null;
         if(page==null)return;
         if("radioDirectory".equals(page))web.evaluateJavascript("window.RoadDeck.radioDirectory()",null);
@@ -125,7 +127,7 @@ public class MainActivity extends Activity {
     @Override public void onWindowFocusChanged(boolean focused){super.onWindowFocusChanged(focused);if(focused){fullscreen();scheduleAutomaticSplit();}}
     @Override public void onBackPressed(){if(startupCover!=null){cancelAutomaticSplit();return;}if(isPanelSettings()&&!ready){finish();return;}if(web!=null)web.evaluateJavascript("window.RoadDeck&&window.RoadDeck.back()",null);}
     @Override protected void onSaveInstanceState(Bundle state){state.putBoolean("roaddeckAutoConsumed",autoConsumed);super.onSaveInstanceState(state);}
-    @Override protected void onDestroy(){ready=false;hideStartupCover();main.removeCallbacksAndMessages(null);io.shutdownNow();if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
+    @Override protected void onDestroy(){bridgeClosed=true;ready=false;hideStartupCover();main.removeCallbacksAndMessages(null);io.shutdownNow();if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
 
     /** Only a new launcher/HOME entry can arm another automatic attempt. */
     private void prepareAutomaticEntry(Intent intent,boolean allow){
@@ -201,8 +203,12 @@ public class MainActivity extends Activity {
 
     private final class Bridge {
         @JavascriptInterface public void post(String message){
-            if(message==null||message.length()>32000)return;
-            main.post(()->{try{handle(new JSONObject(message));}catch(Exception e){error(e);}});
+            if(bridgeClosed||message==null||message.length()>32000)return;
+            main.post(()->{
+                // A JS callback can arrive after onDestroy has cleared the Handler.
+                if(bridgeClosed||web==null||isFinishing()||isDestroyed())return;
+                try{handle(new JSONObject(message));}catch(Exception e){error(e);}
+            });
         }
     }
     private JSONObject obj(Object... fields){
