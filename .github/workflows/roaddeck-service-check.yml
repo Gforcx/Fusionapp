@@ -67,7 +67,7 @@ jobs:
           available_mib = int(mem['MemAvailable'].strip().split()[0]) // 1024
           api = int(os.environ['ROADDECK_API'])
           host_cores = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)
-          guest_cores = 4 if api == 36 and host_cores >= 4 else 2
+          guest_cores = 4 if host_cores >= 4 else 2
           ram_mib = 2048
           if api == 36:
               if available_mib >= 6144:

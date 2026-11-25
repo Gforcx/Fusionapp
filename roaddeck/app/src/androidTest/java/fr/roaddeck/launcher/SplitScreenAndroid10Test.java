@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -621,7 +622,12 @@ public final class SplitScreenAndroid10Test {
     private void captureReadableWazeSettings(Activity activity, String stem, String expectedStatus) throws Exception {
         File screenshot = new File(evidenceDirectory(), stem + ".png");
         AtomicReference<JSONObject> captured = new AtomicReference<>();
-        await("readable settings title in the composed screen", 5000, () -> {
+        AtomicInteger captureAttempts = new AtomicInteger();
+        long captureStartedAt = SystemClock.uptimeMillis();
+        // Match the DOM readiness allowance: an observed emulator GL frame alone
+        // exceeded five seconds. Still require the actual composed title pixels.
+        await("readable settings title in the composed screen", 15000, () -> {
+            captureAttempts.incrementAndGet();
             JSONObject page = readDomElement(activity, "dialogTitle");
             if (!readableWazeSettings(page, expectedStatus) || !device.takeScreenshot(screenshot)) return false;
             Bitmap image = BitmapFactory.decodeFile(screenshot.getAbsolutePath());
@@ -647,6 +653,9 @@ public final class SplitScreenAndroid10Test {
                 if (bright < Math.max(8, title.width() * title.height() / 50)) return false;
                 captured.set(new JSONObject(page.toString())
                         .put("screenshot", screenshot.getName())
+                        .put("captureWaitMs", SystemClock.uptimeMillis() - captureStartedAt)
+                        .put("captureAttempts", captureAttempts.get())
+                        .put("captureTimeoutMs", 15000)
                         .put("composedTitleBrightPixels", bright)
                         .put("composedTitleBounds", new JSONObject().put("left", left).put("top", top)
                                 .put("right", right).put("bottom", bottom))
