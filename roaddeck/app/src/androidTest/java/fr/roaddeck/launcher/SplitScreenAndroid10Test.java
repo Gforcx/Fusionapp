@@ -645,6 +645,8 @@ public final class SplitScreenAndroid10Test {
                                 .put("right", right).put("bottom", bottom))
                         .put("fixture", true).put("realWazeTested", false));
                 return true;
+            } catch (org.json.JSONException error) {
+                throw new AssertionError("Could not record composed settings evidence", error);
             } finally { image.recycle(); }
         });
         try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), stem + "-dom.json"))) {
