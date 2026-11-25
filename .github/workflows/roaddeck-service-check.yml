@@ -54,7 +54,7 @@ jobs:
           path: roaddeck/app/build/outputs/apk/release/*-unsigned.apk
           if-no-files-found: error
           retention-days: 5
-      - name: Size emulator from available runner memory
+      - name: Size emulator from available runner resources
         id: emulator_memory
         working-directory: roaddeck
         env:
@@ -66,6 +66,8 @@ jobs:
           mem = dict(line.split(':', 1) for line in Path('/proc/meminfo').read_text().splitlines())
           available_mib = int(mem['MemAvailable'].strip().split()[0]) // 1024
           api = int(os.environ['ROADDECK_API'])
+          host_cores = len(os.sched_getaffinity(0)) if hasattr(os, 'sched_getaffinity') else (os.cpu_count() or 1)
+          guest_cores = 4 if api == 36 and host_cores >= 4 else 2
           ram_mib = 2048
           if api == 36:
               if available_mib >= 6144:
@@ -75,11 +77,13 @@ jobs:
               else:
                   raise SystemExit('Insufficient host memory for the Android 16 cold-start check: ' + str(available_mib) + ' MiB available')
           record = {'api': api, 'host_available_mib': available_mib, 'guest_ram_mib': ram_mib,
+                    'host_allowed_cpu_count': host_cores, 'guest_cpu_cores': guest_cores,
                     'cold_start_preserved': True, 'anr_checks_preserved': True}
           Path('ci-evidence').mkdir(exist_ok=True)
           Path('ci-evidence/runner-memory.json').write_text(json.dumps(record, indent=2))
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write('ram=' + str(ram_mib) + 'M\n')
+              output.write('cores=' + str(guest_cores) + '\n')
           print(json.dumps(record))
           PYMEM
       - name: Enable KVM
@@ -95,6 +99,7 @@ jobs:
           arch: x86_64
           profile: ${{ matrix.profile }}
           ram-size: ${{ steps.emulator_memory.outputs.ram }}
+          cores: ${{ steps.emulator_memory.outputs.cores }}
           heap-size: 512M
           disk-size: 2048M
           emulator-boot-timeout: 180

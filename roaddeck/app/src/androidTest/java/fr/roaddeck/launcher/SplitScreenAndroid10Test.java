@@ -483,7 +483,21 @@ public final class SplitScreenAndroid10Test {
                             && context.getPackageManager().getLaunchIntentForPackage(NAVIGATION) == null);
             assertNull("Fixture must actually be unavailable before the failure test",
                     context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
-            MainActivity main = launchAutomaticEntry();
+            // startActivitySync waits for UI idle, which can outlast a transient
+            // notice. Observe the fresh launcher entry immediately.
+            MainActivity previousMain = findActivity(MainActivity.class);
+            launchAutomaticEntryWithoutWaitingForIdle();
+            AtomicReference<MainActivity> missingNavigationMain = new AtomicReference<>();
+            await("fresh launcher entry while navigation is unavailable", 10000, () -> {
+                MainActivity candidate = findActivity(MainActivity.class);
+                if (candidate == null || candidate == previousMain
+                        || !Intent.ACTION_MAIN.equals(candidate.getIntent().getAction())
+                        || !candidate.getIntent().hasCategory(Intent.CATEGORY_LAUNCHER)
+                        || candidate.getIntent().getBooleanExtra("skipWazeAuto", false)) return false;
+                missingNavigationMain.set(candidate);
+                return true;
+            });
+            MainActivity main = missingNavigationMain.get();
             await("missing navigation is explained in the visible launcher", 15000, () -> {
                 JSONObject page = readDomElement(main, "toast");
                 return page.optBoolean("visible") && page.optString("text").contains("Installez et ouvrez Waze");
@@ -505,13 +519,6 @@ public final class SplitScreenAndroid10Test {
             assertNotNull("Restore the test fixture after this test",
                     context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
         }
-    }
-
-    private MainActivity launchAutomaticEntry() {
-        Intent launch = new Intent(context, MainActivity.class).setAction(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LAUNCHER)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        return (MainActivity) instrumentation.startActivitySync(launch);
     }
 
     private void launchAutomaticEntryWithoutWaitingForIdle() {
