@@ -9,6 +9,9 @@ case "${1:?API level required}" in
     adb shell wm size 720x1280
     adb shell wm density 240
     adb shell input keyevent 82
+    # Let first-boot system work settle without launching RoadDeck or WebView.
+    # Failure stops preparation before installation; the ANR checks remain strict.
+    python3 tools/wait_emulator_ready.py --output ci-evidence/emulator-ready.json
     adb install -r app/build/outputs/apk/debug/app-debug.apk
     python3 tools/check_binding.py --output service-evidence
     ;;

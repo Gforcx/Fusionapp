@@ -400,19 +400,22 @@ public final class SplitScreenAndroid10Test {
         // and tap its real native cancel control before taking expensive captures.
         launchAutomaticEntryWithoutWaitingForIdle();
         tapStartupCancelWhileVisible();
+        AtomicReference<MainActivity> recoveryActivity = new AtomicReference<>();
         await("startup cancelled and recovery visible", 12000, () -> {
             JSONObject state = snapshot();
-            return "IDLE".equals(state.optString("state")) && !state.optBoolean("requested")
-                    && !state.optBoolean("startupPending") && findActivity(MainActivity.class) != null;
+            MainActivity candidate = findActivity(MainActivity.class);
+            if (!"IDLE".equals(state.optString("state")) || state.optBoolean("requested")
+                    || state.optBoolean("startupPending") || candidate == null
+                    || !candidate.getIntent().getBooleanExtra("skipWazeAuto", false)
+                    || !"waze".equals(candidate.getIntent().getStringExtra("roaddeckPage"))) return false;
+            recoveryActivity.set(candidate);
+            return true;
         });
-        MainActivity main = awaitActivity(MainActivity.class, 10000);
+        MainActivity main = recoveryActivity.get();
         final MainActivity recovery = main;
-        await("cancel returns to readable Waze settings", 15000, () -> {
-            JSONObject page = readDomElement(recovery, "wazeSetupStatus");
-            return page.optBoolean("visible") && page.optString("text").contains("annulée");
-        });
+        awaitReadableWazeSettings(recovery, "annulée");
         assertIdleWithoutRestart(2500);
-        assertTrue("Save cancellation recovery", device.takeScreenshot(new File(evidenceDirectory(), "startup-cancelled.png")));
+        captureReadableWazeSettings(recovery, "startup-cancelled", "annulée");
         writeNamedState("startup-cancelled.json", "native cancel returned to settings without an automatic loop");
 
         // A genuine new launcher entry re-arms exactly one attempt. No button,
@@ -459,11 +462,9 @@ public final class SplitScreenAndroid10Test {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 .putExtra("skipWazeAuto", true).putExtra("roaddeckPage", "waze");
         MainActivity settings = (MainActivity) instrumentation.startActivitySync(inspect);
-        await("manual settings return is drawn", 15000, () -> {
-            JSONObject page = readDomElement(settings, "wazeSetupStatus");
-            return page.optBoolean("visible");
-        });
+        awaitReadableWazeSettings(settings, null);
         assertIdleWithoutRestart(2500);
+        captureReadableWazeSettings(settings, "startup-no-restart", null);
         writeNamedState("startup-no-restart.json", "manual settings return with skipWazeAuto never starts another pair");
     }
 
@@ -590,6 +591,65 @@ public final class SplitScreenAndroid10Test {
             assertFalse("Recovery must remove the visible loading window", state.optBoolean("startupVisible"));
             SystemClock.sleep(100);
         } while (SystemClock.uptimeMillis() < until);
+    }
+
+    private void awaitReadableWazeSettings(Activity activity, String expectedStatus) throws Exception {
+        // The setup status is below the fold on a full-width display. The title,
+        // selected Waze tab and visible section heading identify the opened page
+        // without scrolling the UI or mistaking an offscreen paragraph for a failure.
+        await("Waze settings title and selected page rendered", 15000,
+                () -> readableWazeSettings(readDomElement(activity, "dialogTitle"), expectedStatus));
+    }
+
+    private boolean readableWazeSettings(JSONObject page, String expectedStatus) {
+        return page.optBoolean("visible") && page.optBoolean("hit")
+                && page.optBoolean("visualStateReady") && page.optBoolean("settingsOpen")
+                && "H2".equals(page.optString("tag")) && "Réglages".equals(page.optString("text"))
+                && "waze".equals(page.optString("settingsSection"))
+                && "waze".equals(page.optString("settingsPage"))
+                && page.optBoolean("wazeHeadingVisible")
+                && (expectedStatus == null || page.optString("wazeSetupText").contains(expectedStatus));
+    }
+
+    private void captureReadableWazeSettings(Activity activity, String stem, String expectedStatus) throws Exception {
+        File screenshot = new File(evidenceDirectory(), stem + ".png");
+        AtomicReference<JSONObject> captured = new AtomicReference<>();
+        await("readable settings title in the composed screen", 5000, () -> {
+            JSONObject page = readDomElement(activity, "dialogTitle");
+            if (!readableWazeSettings(page, expectedStatus) || !device.takeScreenshot(screenshot)) return false;
+            Bitmap image = BitmapFactory.decodeFile(screenshot.getAbsolutePath());
+            if (image == null) return false;
+            try {
+                double scale = page.optDouble("dpr", 1);
+                int left = (int) Math.floor(page.optInt("nativeX") + page.optDouble("left") * scale);
+                int top = (int) Math.floor(page.optInt("nativeY") + page.optDouble("top") * scale);
+                int right = (int) Math.ceil(page.optInt("nativeX")
+                        + (page.optDouble("left") + page.optDouble("width")) * scale);
+                int bottom = (int) Math.ceil(page.optInt("nativeY")
+                        + (page.optDouble("top") + page.optDouble("height")) * scale);
+                Rect title = new Rect(left, top, right, bottom);
+                // Recovery can still occupy one native split pane when cancellation
+                // interrupts docking. Use actual WebView coordinates, not screen halves.
+                if (title.isEmpty() || !new Rect(0, 0, image.getWidth(), image.getHeight()).contains(title)) return false;
+                int bright = 0;
+                for (int y = top; y < bottom; y++)
+                    for (int x = left; x < right; x++) {
+                        int color = image.getPixel(x, y);
+                        if (Color.red(color) >= 180 && Color.green(color) >= 180 && Color.blue(color) >= 180) bright++;
+                    }
+                if (bright < Math.max(8, title.width() * title.height() / 50)) return false;
+                captured.set(new JSONObject(page.toString())
+                        .put("screenshot", screenshot.getName())
+                        .put("composedTitleBrightPixels", bright)
+                        .put("composedTitleBounds", new JSONObject().put("left", left).put("top", top)
+                                .put("right", right).put("bottom", bottom))
+                        .put("fixture", true).put("realWazeTested", false));
+                return true;
+            } finally { image.recycle(); }
+        });
+        try (FileOutputStream output = new FileOutputStream(new File(evidenceDirectory(), stem + "-dom.json"))) {
+            output.write(captured.get().toString(2).getBytes(StandardCharsets.UTF_8));
+        }
     }
 
     private void captureStartup(String stem) throws Exception {
@@ -873,6 +933,17 @@ public final class SplitScreenAndroid10Test {
                 + "var s=document.getElementById('stage');"
                 + "var o={panelSettings:!!s&&s.classList.contains('panel-settings'),"
                 + "dpr:window.devicePixelRatio||1,viewportWidth:window.innerWidth,viewportHeight:window.innerHeight};"
+                + "var overlay=document.getElementById('overlay'),layout=document.getElementById('settingsLayout');"
+                + "var tab=document.querySelector('#settingsNav [data-section].active');"
+                + "var page=document.querySelector('#settingsForm [data-page]:not([hidden])');"
+                + "o.settingsOpen=!!overlay&&!overlay.hidden&&!!layout&&!layout.hidden;"
+                + "o.settingsSection=tab?tab.getAttribute('data-section'):'';"
+                + "o.settingsPage=page?page.getAttribute('data-page'):'';"
+                + "var setup=document.getElementById('wazeSetupStatus');o.wazeSetupText=setup?(setup.textContent||'').trim():'';"
+                + "var heading=document.querySelector('#settingsForm [data-page=waze] h3');"
+                + "if(heading){var hr=heading.getBoundingClientRect(),hx=hr.left+hr.width/2,hy=hr.top+hr.height/2;"
+                + "var hh=document.elementFromPoint(hx,hy);o.wazeHeadingVisible=hr.width>0&&hr.height>0"
+                + "&&hx>=0&&hy>=0&&hx<window.innerWidth&&hy<window.innerHeight&&!!hh&&(hh===heading||heading.contains(hh));}"
                 + "if(e){var r=e.getBoundingClientRect(),c=window.getComputedStyle(e);"
                 + "var x=r.left+r.width/2,y=r.top+r.height/2,h=document.elementFromPoint(x,y);"
                 + "o.left=r.left;o.top=r.top;o.width=r.width;o.height=r.height;o.tag=e.tagName;"
@@ -917,7 +988,7 @@ public final class SplitScreenAndroid10Test {
                         page.put("callbackDelayMs", SystemClock.uptimeMillis() - requestedAt);
                         probe.result.set(page);
                         if (page.optBoolean("visible") && (("dialogTitle".equals(id)
-                                && page.optBoolean("panelSettings") && "Réglages".equals(page.optString("text")))
+                                && page.optBoolean("settingsOpen") && "Réglages".equals(page.optString("text")))
                                 || ("launchWaze".equals(id) && "BUTTON".equals(page.optString("tag"))))) {
                             probe.phase = "waiting for visual state acknowledgement";
                             web.postVisualStateCallback(requestedAt, new WebView.VisualStateCallback() {

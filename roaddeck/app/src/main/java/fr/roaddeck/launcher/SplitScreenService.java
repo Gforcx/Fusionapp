@@ -694,8 +694,12 @@ public final class SplitScreenService extends AccessibilityService {
 
     private void showRecovery() {
         try {
+            // Cancellation can arrive after Android has started docking a task.
+            // Recreate only RoadDeck's own UI: reusing its previously stopped
+            // WebView can leave a black surface after that interrupted resize.
+            closePanelTasks();
             startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra("skipWazeAuto", true).putExtra("roaddeckPage", "waze"));
+                    | Intent.FLAG_ACTIVITY_CLEAR_TASK).putExtra("skipWazeAuto", true).putExtra("roaddeckPage", "waze"));
         } catch (RuntimeException ignored) { }
     }
 

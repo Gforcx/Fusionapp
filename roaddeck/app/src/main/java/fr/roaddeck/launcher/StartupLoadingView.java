@@ -319,6 +319,12 @@ public final class StartupLoadingView extends FrameLayout {
         }
 
         @Override protected void onDraw(Canvas canvas) {
+            // Arc and lane rendering below changes strokeCap to ROUND. Start each
+            // logo frame with the same complete Paint state, including the BUTT
+            // cap used by the preceding closed contours; otherwise their Skia
+            // rasterization differs between the first draw and later draws.
+            paint.reset();
+            paint.setAntiAlias(true);
             canvas.save();
             canvas.scale(getWidth() / 128f, getHeight() / 128f);
             paint.setStyle(Paint.Style.FILL);
