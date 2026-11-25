@@ -98,7 +98,7 @@ public final class SplitScreenService extends AccessibilityService {
     private SplitGeometry.Box startupBounds;
     private final Set<Integer> startupWindowIds = new HashSet<>();
     private boolean startupSession, startupPlacementConfirmed, startupDrawn, startupReleaseQueued, startupSuspended;
-    private long startupGeneration, startupReadyDeadline;
+    private long startupGeneration, startupReadyDeadline, startupFocusPausedAt;
     private String startupError = "";
     private WeakReference<Activity> startupActivity;
     private Runnable pendingFirstLaunch;
@@ -502,12 +502,15 @@ public final class SplitScreenService extends AccessibilityService {
         final long generation = startupGeneration;
         pendingFirstLaunch = () -> {
             if (instance != this || !startupSession || startupGeneration != generation || phase != Phase.WAIT_WAZE) return;
-            pendingFirstLaunch = null;
             Activity launching = startupActivity == null ? null : startupActivity.get();
-            if (!visibleActivity(launching) || !launching.hasWindowFocus()) {
+            if (!visibleActivity(launching)) {
                 fail("RoadDeck a quitté le premier plan avant l’ouverture de Waze.");
                 return;
             }
+            // A first-use Android fullscreen hint may temporarily own focus.
+            // Keep the launch pending; never launch behind or dismiss that dialog.
+            if (!launching.hasWindowFocus()) return;
+            pendingFirstLaunch = null;
             try { launching.startActivity(intent); }
             catch (RuntimeException error) { fail("Impossible d’ouvrir Waze : " + error.getClass().getSimpleName()); }
         };
@@ -674,6 +677,7 @@ public final class SplitScreenService extends AccessibilityService {
         startupActivity = null;
         startupSession = false;
         startupReadyDeadline = 0;
+        startupFocusPausedAt = 0;
         startupReleaseQueued = false;
         detachStartupView();
     }
@@ -726,9 +730,8 @@ public final class SplitScreenService extends AccessibilityService {
         latest = observe();
         long now = SystemClock.uptimeMillis();
         phaseSamples++;
-        if (startupSession) suspendStartup(latest.unknownForeground);
-        if (startupSession && (latest.keyguardLocked || latest.focusedSystemWindow
-                || latest.inputMethodVisible || unexpectedStartupApplication(latest))) {
+        if (startupSession && (latest.keyguardLocked || latest.inputMethodVisible
+                || unexpectedStartupApplication(latest))) {
             // A permission dialog, lock screen or deliberately opened app must be
             // accessible immediately. Do not relaunch RoadDeck over that surface.
             cancelScans();
@@ -740,6 +743,28 @@ public final class SplitScreenService extends AccessibilityService {
             message = "Préparation interrompue pour laisser accès à l’écran ouvert.";
             publish();
             return;
+        }
+        if (startupSession && (latest.focusedSystemWindow || latest.unknownForeground)) {
+            suspendStartup(true);
+            if (startupFocusPausedAt == 0) startupFocusPausedAt = now;
+            if (now > overallDeadline) {
+                cancelScans(); removeStartup(); removeSeam();
+                if (systemBarMask != null) systemBarMask.hide();
+                phase = Phase.IDLE; active = false;
+                message = "Préparation arrêtée pendant l’écran Android. Relancez Waze depuis RoadDeck quand vous avez terminé.";
+            }
+            publish();
+            return;
+        }
+        if (startupSession) {
+            if (startupFocusPausedAt != 0) {
+                long paused = now - startupFocusPausedAt;
+                deadline = Math.min(overallDeadline, deadline + paused);
+                if (startupReadyDeadline != 0) startupReadyDeadline += paused;
+                startupFocusPausedAt = 0;
+            }
+            suspendStartup(false);
+            if (startupDrawn || startupView == null) runFirstLaunch();
         }
         if (pending() && latest.screenWidth > 0 && latest.screenWidth < latest.screenHeight) {
             fail("L’écran doit rester en paysage pour afficher Waze à gauche.");

@@ -69,6 +69,7 @@ public final class SplitScreenAndroid10Test {
     private UiAutomation automation;
     private DomProbe domProbe;
     private Rect testedNavigationContent;
+    private String fixtureUserId;
 
     @Rule public final TestWatcher evidence = new TestWatcher() {
         @Override protected void failed(Throwable error, Description description) {
@@ -104,12 +105,70 @@ public final class SplitScreenAndroid10Test {
         assertTrue("The navigation APK must be marked testOnly", (fixture.flags & ApplicationInfo.FLAG_TEST_ONLY) != 0);
         assertNotNull("Missing fixture marker", fixture.metaData);
         assertTrue("Missing fixture marker", fixture.metaData.getBoolean("roaddeck.navigation_fixture", false));
-        device.executeShellCommand("am force-stop com.waze");
+        fixtureUserId = recordFixtureShell("am get-current-user").trim();
+        assertTrue("The fixture user must be an explicit numeric ID: " + fixtureUserId,
+                fixtureUserId.matches("[0-9]+"));
+        recordFixtureShell("am force-stop --user " + fixtureUserId + " com.waze");
         device.wakeUp();
+        acknowledgeInitialImmersiveTutorial();
+        recordFixtureShell("am force-stop --user " + fixtureUserId + " com.waze");
         enableSplitServiceAfterUiAutomation();
         await("RoadDeck accessibility service connected", 15000, SplitScreenService::isConnected);
         setBooleanSettings(new JSONObject().put("splitAutoStart", true)
                 .put("splitCoverBars", true).put("splitFrame", true));
+    }
+
+    /** A cold API29 image shows an Android tutorial over its first immersive app.
+     * Acknowledge that actual system UI normally, before testing the requested
+     * startup flow. The fixture is stopped again afterwards; no application flag,
+     * permission, production timeout, or window policy is changed by this setup.
+     */
+    private void acknowledgeInitialImmersiveTutorial() throws Exception {
+        Intent navigation = context.getPackageManager().getLaunchIntentForPackage(NAVIGATION);
+        assertNotNull("Fixture launcher is available for tutorial setup", navigation);
+        ComponentName component = navigation.getComponent();
+        assertNotNull("Fixture has an explicit launch component", component);
+        assertEquals("Only the verified fixture may be started", NAVIGATION, component.getPackageName());
+        String target = component.flattenToShortString();
+        assertTrue("Unexpected fixture component characters", target.matches("[A-Za-z0-9_.$/]+"));
+        String launch = recordFixtureShell("am start -W --user " + fixtureUserId + " -n " + target);
+        assertTrue("Fixture tutorial launch failed: " + launch, launch.contains("Status: ok"));
+        await("fixture fullscreen tutorial host visible", 10000, () -> windowBounds(NAVIGATION) != null);
+        UiObject2 title = device.wait(Until.findObject(By.res("android", "immersive_cling_title")), 4000);
+        boolean acknowledged = false;
+        if (title != null) {
+            UiObject2 button = device.findObject(By.res("android", "ok").clazz("android.widget.Button"));
+            assertNotNull("The observed Android immersive tutorial must offer its confirmation button", button);
+            assertTrue("The Android tutorial confirmation must be enabled", button.isEnabled());
+            Rect bounds = button.getVisibleBounds();
+            assertFalse("The tutorial confirmation must be on screen", bounds.isEmpty());
+            assertTrue("Save the real Android tutorial before acknowledging it", device.takeScreenshot(
+                    new File(evidenceDirectory(), "android-immersive-tutorial.png")));
+            clearAutomationNodeCache();
+            assertTrue("Could not touch Android's tutorial confirmation", device.click(bounds.centerX(), bounds.centerY()));
+            await("Android immersive tutorial acknowledged", 5000,
+                    () -> !device.hasObject(By.res("android", "immersive_cling_title")));
+            acknowledged = true;
+        }
+        JSONObject record = new JSONObject().put("fixtureUser", fixtureUserId)
+                .put("tutorialObservedAndAcknowledged", acknowledged)
+                .put("secureSettingsModified", false).put("uptimeMs", SystemClock.uptimeMillis());
+        try (FileOutputStream output = new FileOutputStream(
+                new File(evidenceDirectory(), "android-immersive-tutorial.jsonl"), true)) {
+            output.write((record.toString() + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    /** Preserve the actual command output: a shell call alone is not proof of a mutation. */
+    private String recordFixtureShell(String command) throws Exception {
+        String output = device.executeShellCommand(command);
+        JSONObject record = new JSONObject().put("command", command).put("stdout", output)
+                .put("uptimeMs", SystemClock.uptimeMillis());
+        try (FileOutputStream file = new FileOutputStream(
+                new File(evidenceDirectory(), "fixture-shell-commands.jsonl"), true)) {
+            file.write((record.toString() + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+        return output;
     }
 
     /**
@@ -402,8 +461,17 @@ public final class SplitScreenAndroid10Test {
 
     @Test public void unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop() throws Exception {
         // Only the explicitly verified testOnly fixture can be disabled by this harness.
-        device.executeShellCommand("pm disable-user --user current com.waze");
+        int original = context.getPackageManager().getApplicationEnabledSetting(NAVIGATION);
+        assertTrue("The test must begin with an enabled fixture", original == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+                || original == PackageManager.COMPONENT_ENABLED_STATE_ENABLED);
         try {
+            String disabled = recordFixtureShell("pm disable-user --user " + fixtureUserId + " com.waze");
+            assertTrue("PackageManager must confirm disabling the fixture: " + disabled,
+                    disabled.contains("Package com.waze new state: disabled-user"));
+            await("fixture disabled for the actual current user", 5000,
+                    () -> context.getPackageManager().getApplicationEnabledSetting(NAVIGATION)
+                            == PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER
+                            && context.getPackageManager().getLaunchIntentForPackage(NAVIGATION) == null);
             assertNull("Fixture must actually be unavailable before the failure test",
                     context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
             MainActivity main = launchAutomaticEntry();
@@ -421,7 +489,10 @@ public final class SplitScreenAndroid10Test {
             assertNull("No unavailable navigation window may be fabricated", windowBounds(NAVIGATION));
             writeNamedState("startup-waze-unavailable.json", "missing navigation leaves a visible message and interactive launcher; no loading loop");
         } finally {
-            device.executeShellCommand("pm enable --user current com.waze");
+            String restore = original == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT ? "default-state" : "enable";
+            recordFixtureShell("pm " + restore + " --user " + fixtureUserId + " com.waze");
+            assertEquals("Restore the fixture's original enabled state", original,
+                    context.getPackageManager().getApplicationEnabledSetting(NAVIGATION));
             assertNotNull("Restore the test fixture after this test",
                     context.getPackageManager().getLaunchIntentForPackage(NAVIGATION));
         }

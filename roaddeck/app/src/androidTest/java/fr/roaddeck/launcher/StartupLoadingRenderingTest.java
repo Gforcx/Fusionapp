@@ -38,6 +38,7 @@ public final class StartupLoadingRenderingTest {
                 int height = Math.round(sizes[index][1] * density);
                 Bitmap bitmap = render(view, width, height, 0.17f);
                 try {
+                    save("bitmap-startup-" + labels[index] + ".png", bitmap);
                     assertOpaque(bitmap);
                     Button cancel = view.cancelButtonForTesting();
                     Rect buttonBounds = new Rect(0, 0, cancel.getWidth(), cancel.getHeight());
@@ -47,7 +48,6 @@ public final class StartupLoadingRenderingTest {
                     assertTrue("Cancel must remain completely on screen: " + buttonBounds,
                             new Rect(0, 0, width, height).contains(buttonBounds));
                     assertEquals("Annuler le démarrage", cancel.getContentDescription());
-                    save("bitmap-startup-" + labels[index] + ".png", bitmap);
                     cancel.performClick();
                     cancel.performClick();
                     assertEquals("A cancel request is dispatched once", 1, cancelled.get());
@@ -80,6 +80,8 @@ public final class StartupLoadingRenderingTest {
             view.offsetDescendantRectToMyCoords(cancel, beforeBounds);
             Bitmap after = render(view, width, height, 0.31f);
             try {
+                save("bitmap-startup-animation-before.png", before);
+                save("bitmap-startup-animation-after.png", after);
                 assertOpaque(before);
                 assertOpaque(after);
                 int[] a = new int[width * height], b = new int[width * height];
@@ -97,8 +99,6 @@ public final class StartupLoadingRenderingTest {
                 Rect afterBounds = new Rect(0, 0, cancel.getWidth(), cancel.getHeight());
                 view.offsetDescendantRectToMyCoords(cancel, afterBounds);
                 assertEquals("The action must not move with the animation", beforeBounds, afterBounds);
-                save("bitmap-startup-animation-before.png", before);
-                save("bitmap-startup-animation-after.png", after);
             } finally {
                 view.destroy();
                 before.recycle();
@@ -122,8 +122,12 @@ public final class StartupLoadingRenderingTest {
         int[] pixels = new int[bitmap.getWidth() * bitmap.getHeight()];
         bitmap.getPixels(pixels, 0, bitmap.getWidth(), 0, 0,
                 bitmap.getWidth(), bitmap.getHeight());
-        for (int pixel : pixels) assertEquals("The loading curtain must not reveal setup below",
-                255, Color.alpha(pixel));
+        for (int index = 0; index < pixels.length; index++) {
+            if (Color.alpha(pixels[index]) != 255) assertEquals(
+                    "The loading curtain must not reveal setup below at "
+                            + (index % bitmap.getWidth()) + "," + (index / bitmap.getWidth()),
+                    255, Color.alpha(pixels[index]));
+        }
     }
 
     private static void save(String name, Bitmap bitmap) throws Exception {

@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -131,6 +132,15 @@ public final class StartupLoadingView extends FrameLayout {
         destroyed = true;
         stopAnimation();
         cancel.setOnClickListener(null);
+    }
+
+    @Override public void draw(Canvas canvas) {
+        super.draw(canvas);
+        // The curtain is an opaque surface, including after all translucent glows,
+        // antialiased text and child views have been composited. The API 29 software
+        // renderer can round a SRC_OVER result to alpha 254; an opaque backing pass
+        // fills that residual transparency without painting over the artwork.
+        canvas.drawColor(0xff090d19, PorterDuff.Mode.DST_OVER);
     }
 
     @Override protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
