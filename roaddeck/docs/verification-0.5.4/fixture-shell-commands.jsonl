@@ -1,0 +1,14 @@
+{"command":"am get-current-user","stdout":"0\n","uptimeMs":37903}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":37973}
+{"command":"am start -W --user 0 -n com.waze\/.FixtureNavigationActivity","stdout":"Starting: Intent { cmp=com.waze\/.FixtureNavigationActivity }\nStatus: ok\nLaunchState: COLD\nActivity: com.waze\/.FixtureNavigationActivity\nTotalTime: 2984\nWaitTime: 2997\nComplete\n","uptimeMs":41026}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":44904}
+{"command":"am get-current-user","stdout":"0\n","uptimeMs":126238}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":126294}
+{"command":"am start -W --user 0 -n com.waze\/.FixtureNavigationActivity","stdout":"Starting: Intent { cmp=com.waze\/.FixtureNavigationActivity }\nStatus: ok\nLaunchState: COLD\nActivity: com.google.android.apps.nexuslauncher\/.NexusLauncherActivity\nTotalTime: 13\nWaitTime: 14\nComplete\n","uptimeMs":126329}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":131792}
+{"command":"pm disable-user --user 0 com.waze","stdout":"Package com.waze new state: disabled-user\n","uptimeMs":133111}
+{"command":"pm default-state --user 0 com.waze","stdout":"Package com.waze new state: default\n","uptimeMs":146212}
+{"command":"am get-current-user","stdout":"0\n","uptimeMs":147232}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":147439}
+{"command":"am start -W --user 0 -n com.waze\/.FixtureNavigationActivity","stdout":"Starting: Intent { cmp=com.waze\/.FixtureNavigationActivity }\nStatus: ok\nLaunchState: COLD\nActivity: com.waze\/.FixtureNavigationActivity\nTotalTime: 1898\nWaitTime: 1979\nComplete\n","uptimeMs":149587}
+{"command":"am force-stop --user 0 com.waze","stdout":"","uptimeMs":153771}

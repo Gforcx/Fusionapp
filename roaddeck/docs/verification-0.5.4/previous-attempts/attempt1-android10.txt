@@ -1,0 +1,318 @@
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitFrameRenderingTest:
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitScreenAndroid10Test:
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"RoadDeck a quitté le premier plan avant l’ouverture de Waze.","state":"FAILED","failureStage":"WAIT_WAZE","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2351,"phaseSamples":0,"waitCondition":false,"waitReason":"awaiting first observation","stableSamples":0,"scanDurationMs":9,"getWindowsDurationMs":1,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: DOM and visual state ready {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"left":117.98814392089844,"top":432.5430908203125,"width":268.14520263671875,"height":48.10345458984375,"tag":"BUTTON","text":"Afficher Waze à gauche","disabled":false,"visible":true,"hit":true,"id":"launchWaze","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":10,"visualStateReady":true}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings(SplitScreenAndroid10Test.java:176)
+
+INSTRUMENTATION_STATUS: stream=
+Error in nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings(fr.roaddeck.launcher.SplitScreenAndroid10Test):
+java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"RoadDeck a quitté le premier plan avant l’ouverture de Waze.","state":"FAILED","failureStage":"WAIT_WAZE","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2351,"phaseSamples":0,"waitCondition":false,"waitReason":"awaiting first observation","stableSamples":0,"scanDurationMs":9,"getWindowsDurationMs":1,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: DOM and visual state ready {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"left":117.98814392089844,"top":432.5430908203125,"width":268.14520263671875,"height":48.10345458984375,"tag":"BUTTON","text":"Afficher Waze à gauche","disabled":false,"visible":true,"hit":true,"id":"launchWaze","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":10,"visualStateReady":true}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings(SplitScreenAndroid10Test.java:176)
+
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Fixture must actually be unavailable before the failure test expected null, but was:<Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 pkg=com.waze cmp=com.waze/.FixtureNavigationActivity }>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotNull(Assert.java:756)
+	at org.junit.Assert.assertNull(Assert.java:738)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:407)
+
+INSTRUMENTATION_STATUS: stream=
+Error in unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(fr.roaddeck.launcher.SplitScreenAndroid10Test):
+java.lang.AssertionError: Fixture must actually be unavailable before the failure test expected null, but was:<Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 pkg=com.waze cmp=com.waze/.FixtureNavigationActivity }>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotNull(Assert.java:756)
+	at org.junit.Assert.assertNull(Assert.java:738)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:407)
+
+INSTRUMENTATION_STATUS: test=unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Préparation interrompue pour laisser accès à l’écran ouvert.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2910,"phaseSamples":3,"waitCondition":false,"waitReason":"divider=false, WazeFocused=false, panelFocused=true, panelVisible=false","stableSamples":0,"scanDurationMs":286,"getWindowsDurationMs":132,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":1,"lastRootDurationMs":697,"maximumRootDurationMs":697,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":2,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: none
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery(SplitScreenAndroid10Test.java:338)
+
+INSTRUMENTATION_STATUS: stream=
+Error in automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery(fr.roaddeck.launcher.SplitScreenAndroid10Test):
+java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Préparation interrompue pour laisser accès à l’écran ouvert.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2910,"phaseSamples":3,"waitCondition":false,"waitReason":"divider=false, WazeFocused=false, panelFocused=true, panelVisible=false","stableSamples":0,"scanDurationMs":286,"getWindowsDurationMs":132,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":1,"lastRootDurationMs":697,"maximumRootDurationMs":697,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":2,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: none
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery(SplitScreenAndroid10Test.java:338)
+
+INSTRUMENTATION_STATUS: test=automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.StartupLoadingRenderingTest:
+INSTRUMENTATION_STATUS: test=curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios$0(StartupLoadingRenderingTest.java:41)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: stream=
+Error in curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios(fr.roaddeck.launcher.StartupLoadingRenderingTest):
+java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios$0(StartupLoadingRenderingTest.java:41)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: test=curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel$1(StartupLoadingRenderingTest.java:83)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: stream=
+Error in indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel(fr.roaddeck.launcher.StartupLoadingRenderingTest):
+java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel$1(StartupLoadingRenderingTest.java:83)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+INSTRUMENTATION_STATUS: test=indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 40.378
+There were 5 failures:
+1) nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings(fr.roaddeck.launcher.SplitScreenAndroid10Test)
+java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"RoadDeck a quitté le premier plan avant l’ouverture de Waze.","state":"FAILED","failureStage":"WAIT_WAZE","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2351,"phaseSamples":0,"waitCondition":false,"waitReason":"awaiting first observation","stableSamples":0,"scanDurationMs":9,"getWindowsDurationMs":1,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: DOM and visual state ready {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"left":117.98814392089844,"top":432.5430908203125,"width":268.14520263671875,"height":48.10345458984375,"tag":"BUTTON","text":"Afficher Waze à gauche","disabled":false,"visible":true,"hit":true,"id":"launchWaze","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":10,"visualStateReady":true}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings(SplitScreenAndroid10Test.java:176)
+2) unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(fr.roaddeck.launcher.SplitScreenAndroid10Test)
+java.lang.AssertionError: Fixture must actually be unavailable before the failure test expected null, but was:<Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10000000 pkg=com.waze cmp=com.waze/.FixtureNavigationActivity }>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotNull(Assert.java:756)
+	at org.junit.Assert.assertNull(Assert.java:738)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:407)
+3) automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery(fr.roaddeck.launcher.SplitScreenAndroid10Test)
+java.lang.AssertionError: Timed out: full startup curtain composed on screen. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Préparation interrompue pour laisser accès à l’écran ouvert.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":1280,"screenHeight":720,"phaseElapsedMs":2910,"phaseSamples":3,"waitCondition":false,"waitReason":"divider=false, WazeFocused=false, panelFocused=true, panelVisible=false","stableSamples":0,"scanDurationMs":286,"getWindowsDurationMs":132,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":1,"lastRootDurationMs":697,"maximumRootDurationMs":697,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"Une fenêtre système est au premier plan.","frameExclusionCount":2,"frameRegionallyExcludedWindows":2,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":true,"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":true,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[{"left":0,"top":0,"right":1280,"bottom":24},{"left":0,"top":672,"right":1280,"bottom":720}],"panelBounds":{"left":0,"top":0,"right":1280,"bottom":720}}. Last DOM probe: none
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:929)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.captureStartup(SplitScreenAndroid10Test.java:452)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery(SplitScreenAndroid10Test.java:338)
+4) curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios(fr.roaddeck.launcher.StartupLoadingRenderingTest)
+java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios$0(StartupLoadingRenderingTest.java:41)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda3.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+5) indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel(fr.roaddeck.launcher.StartupLoadingRenderingTest)
+java.lang.AssertionError: The loading curtain must not reveal setup below expected:<255> but was:<254>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:647)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.assertOpaque(StartupLoadingRenderingTest.java:125)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel$1(StartupLoadingRenderingTest.java:83)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest.lambda$onMain$2(StartupLoadingRenderingTest.java:145)
+	at fr.roaddeck.launcher.StartupLoadingRenderingTest$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:462)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at android.app.Instrumentation$SyncRunnable.run(Instrumentation.java:2207)
+	at android.os.Handler.handleCallback(Handler.java:883)
+	at android.os.Handler.dispatchMessage(Handler.java:100)
+	at android.os.Looper.loop(Looper.java:214)
+	at android.app.ActivityThread.main(ActivityThread.java:7356)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:492)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:930)
+
+FAILURES!!!
+Tests run: 9,  Failures: 5
+
+
+INSTRUMENTATION_CODE: -1

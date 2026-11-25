@@ -1,0 +1,67 @@
+11-25 16:53:43.379   641  3244 I ActivityManager: dumpStackTraces extraPids=null
+11-25 16:53:43.379   641  3244 I ActivityManager: Done dumping
+11-25 16:53:43.380   641  3244 E ActivityManager: ANR in fr.roaddeck.launcher (fr.roaddeck.launcher/.MainActivity)
+11-25 16:53:43.380   641  3244 E ActivityManager: PID: 2324
+11-25 16:53:43.380   641  3244 E ActivityManager: Reason: Input dispatching timed out (5e98ea2 fr.roaddeck.launcher/fr.roaddeck.launcher.MainActivity is not responding. Waited 5000ms for FocusEvent(hasFocus=false)).
+11-25 16:53:43.380   641  3244 E ActivityManager: Parent: fr.roaddeck.launcher/.MainActivity
+11-25 16:53:43.380   641  3244 E ActivityManager: ErrorId: 6be9bfc7-abf3-4f75-a1dd-e843cb70035e
+11-25 16:53:43.380   641  3244 E ActivityManager: Frozen: false
+11-25 16:53:43.380   641  3244 E ActivityManager: Load: 0.0 / 0.0 / 0.0
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- Output from /proc/pressure/memory -----
+11-25 16:53:43.380   641  3244 E ActivityManager: some avg10=0.99 avg60=1.42 avg300=0.42 total=1542007
+11-25 16:53:43.380   641  3244 E ActivityManager: full avg10=0.02 avg60=0.05 avg300=0.01 total=174842
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- End output from /proc/pressure/memory -----
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- Output from /proc/pressure/cpu -----
+11-25 16:53:43.380   641  3244 E ActivityManager: some avg10=91.99 avg60=55.82 avg300=16.37 total=53966822
+11-25 16:53:43.380   641  3244 E ActivityManager: full avg10=0.00 avg60=0.00 avg300=0.00 total=0
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- End output from /proc/pressure/cpu -----
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- Output from /proc/pressure/io -----
+11-25 16:53:43.380   641  3244 E ActivityManager: some avg10=11.61 avg60=11.86 avg300=4.02 total=13960839
+11-25 16:53:43.380   641  3244 E ActivityManager: full avg10=0.02 avg60=1.60 avg300=0.84 total=3309721
+11-25 16:53:43.380   641  3244 E ActivityManager: ----- End output from /proc/pressure/io -----
+11-25 16:53:43.380   641  3244 E ActivityManager: 
+11-25 16:53:43.380   641  3244 E ActivityManager: CPU usage from 45524ms to 0ms ago (2026-11-25 16:52:54.363 to 2026-11-25 16:53:39.887):
+11-25 16:53:43.380   641  3244 E ActivityManager:   31% 641/system_server: 23% user + 7.5% kernel / faults: 106430 minor 437 major
+11-25 16:53:43.380   641  3244 E ActivityManager:   28% 519/surfaceflinger: 1.3% user + 27% kernel / faults: 3570 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   12% 490/android.hardware.graphics.composer3-service.ranchu: 0.1% user + 12% kernel / faults: 19 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   5.2% 583/logcat: 0.2% user + 5% kernel / faults: 6 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   2.4% 461/android.hardware.graphics.allocator-service.ranchu: 0% user + 2.4% kernel / faults: 1 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   1.9% 528/adbd: 0.6% user + 1.3% kernel / faults: 70573 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   1.8% 207/logd: 0.6% user + 1.2% kernel / faults: 2495 minor
+11-25 16:53:43.380   641  3244 E ActivityManager:   1.5% 76/kworker/1:2H-kverityd: 0% user + 1.5% kernel
+11-25 16:53:43.380   641  3244 E ActivityManager:   0.8% 38/kworker/1:1-virtio_vsock: 0% user + 0.8% kernel
+11-25 16:53:43.380   641  3244 E ActivityManager:   0.8% 27/kworker/1:0-slub_flushwq: 0% user + 0.8% kernel
+11-25 16:53:43.380   641  3244 E ActivityManager: 99% TOTAL: 43% user + 55% kernel + 0% iowait + 1% softirq
+11-25 16:53:43.380   641  3244 E ActivityManager: CPU usage from 84657ms to 84657ms ago (1970-01-01 00:00:00.000 to 1970-01-01 00:00:00.000) with 0% awake:
+11-25 16:53:43.380   641  3244 E ActivityManager: 0% TOTAL: 0% user + 0% kernel
+11-25 16:53:43.387   641  3244 I ActivityManager: Killing 2324:fr.roaddeck.launcher/u0a216 (adj 100): bg anr
+11-25 16:53:43.387   641  3244 D ActivityManager: Completed ANR of fr.roaddeck.launcher in 3500ms, latency 0ms (expired, only dump ANR app)
+11-25 16:53:43.388   641  3320 I DropBoxManagerService: add tag=data_app_anr isTagEnabled=true flags=0x6
+11-25 16:53:43.393  1177  1177 D SatelliteController: Default SMS subscription changed
+11-25 16:53:43.393  1177  1177 D CarrierSvcBindHelper: onPackageModified: com.google.android.googlequicksearchbox
+11-25 16:53:43.402  1475  2999 I IntentFilterIntentOp: Verification 5 complete. Success:true. Failed hosts:. [CONTEXT service_id=244 ]
+11-25 16:53:43.403  1177  1177 D CarrierSvcBindHelper: No carrier app for: 0
+11-25 16:53:43.404  1816  2112 I CalRefreshTaskCtrl: #onDeviceInstallOrBoot(): Starting calendar refresh task.
+11-25 16:53:43.404  1177  1426 D SatelliteController: evaluateESOSProfilesPrioritization: allSubInfos.size()=1
+11-25 16:53:43.404  1177  1426 D SatelliteController: evaluateESOSProfilesPrioritization: newSubsInfoListPerPriority.size()=0
+11-25 16:53:43.404  1177  1426 D SatelliteController: evaluateESOSProfilesPrioritization: no satellite subscription available
+11-25 16:53:43.405  1475  2999 I IntentFilterIntentOp: Verifying IntentFilter. verificationId:6 scheme:"https" hosts:"gmail.app.goo.gl dynamite-autopush.sandbox.google.com tel.meet d.meet chat.google.com t.meet dynamite-preprod.sandbox.google.com enterprise.google.com stream.meet.google.com client-side-encryption.google.com dial.meet meet.google.com krahsc.google.com" package:"com.google.android.gm". [CONTEXT service_id=244 ]
+11-25 16:53:43.418  1020  1245 W ndroid.systemui: Long monitor contention with owner main (1020) at void android.content.res.AssetManager.applyStyle(long, int, int, android.content.res.XmlBlock$Parser, int[], long, long)(AssetManager.java:1258) waiters=0 in java.lang.CharSequence android.content.res.AssetManager.getResourceText(int) for 343ms
+11-25 16:53:43.422   641  2068 D PackageManager: Instant App installer not found with android.intent.action.INSTALL_INSTANT_APP_PACKAGE
+11-25 16:53:43.422   641  2068 D PackageManager: Clear ephemeral installer activity
+11-25 16:53:43.425   641   641 W system_server: Long monitor contention with owner binder:641_6 (992) at void com.android.server.accessibility.magnification.FullScreenMagnificationController$SpecAnimationBridge.setEnabled(boolean)(FullScreenMagnificationController.java:2078) waiters=0 in void com.android.server.accessibility.magnification.FullScreenMagnificationController$DisplayMagnification.updateMagnificationRegion(android.graphics.Region) for 342ms
+11-25 16:53:43.429  1475  2999 I AppLinksUtilsV1: Legacy cross-profile verification enabled [CONTEXT service_id=244 ]
+11-25 16:53:43.430   641  1857 D SafetySourceDataValidat: No cert check requested for package com.android.settings
+11-25 16:53:43.434  1177  1177 E SmsApplication: com.google.android.apps.messaging lost android:read_cell_broadcasts:  (fixing)
+11-25 16:53:43.434   641   724 W AppOpService: Ignored setUidMode call for runtime permission app op: uid = 10145, code = READ_CELL_BROADCASTS, mode = allow, callingUid = 1001, oldMode = allow
+11-25 16:53:43.443  1254  1254 I ActiveUnlockStatusUtils: authority not set
+11-25 16:53:43.447  1329  2752 W GetConfigSnapshotOp: Succeeded but not registered: com.google.android.inputmethod.latin#com.google.android.inputmethod.latin [CONTEXT service_id=51 ]
+11-25 16:53:43.447   641   770 V AccessibilityManagerService: onUserStateChangedLocked for userId: 0, forceUpdate: false
+11-25 16:53:43.458   641   673 W ActivityManager: Slow operation: 208ms so far, now at startProcess: done updating battery stats
+11-25 16:53:43.458   641   673 W ActivityManager: Slow operation: 208ms so far, now at startProcess: building log message
+11-25 16:53:43.458   641   673 I ActivityManager: Start proc 3319:com.google.android.dialer/u0a135 for service {com.google.android.dialer/com.android.voicemail.impl.DialerVisualVoicemailService}
+11-25 16:53:43.458   641   673 W ActivityManager: Slow operation: 208ms so far, now at startProcess: starting to update pids map
+11-25 16:53:43.459   641   673 I ActivityManager: ProcessObserver broadcast disabled
+11-25 16:53:43.459   641   673 W ActivityManager: Slow operation: 209ms so far, now at startProcess: done updating pids map
+11-25 16:53:43.466   641  2069 D SafetySourceDataValidat: No cert check requested for package com.android.settings
+11-25 16:53:43.470  1254  1254 D PrivateSpaceSafetySrc: Setting safety source data

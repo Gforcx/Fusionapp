@@ -1,0 +1,155 @@
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitFrameRenderingTest:
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=systemBarsMoveTheSurroundInsideVisibleContentRegardlessOfExclusionOrder
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=surroundPaintsAllFourMarginsAndLeavesRoundedOpeningTransparent
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=previewAddsOnlyACentralBadgeAndDisappearsWhenDisabled
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitFrameRenderingTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=exclusionsClearOnlyTheirPixelsAndFullExclusionReportsNoPaint
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.SplitScreenAndroid10Test:
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=nativeNavigationResizesAndRemainsInteractiveAcrossPanelSettings
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Timed out: missing navigation is explained in the visible launcher. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":0,"screenHeight":0,"phaseElapsedMs":144488,"phaseSamples":0,"waitCondition":false,"waitReason":"idle","stableSamples":0,"scanDurationMs":0,"getWindowsDurationMs":0,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"","frameExclusionCount":0,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":false,"barInsetsSource":"","barStableInsets":{"left":0,"top":0,"right":0,"bottom":0},"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":false,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[]}. Last DOM probe: DOM answered {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"settingsOpen":false,"settingsSection":"general","settingsPage":"general","wazeSetupText":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","wazeHeadingVisible":false,"left":0,"top":0,"width":0,"height":0,"tag":"DIV","text":"Installez et ouvrez Waze une première fois, puis relancez RoadDeck.","disabled":false,"visible":false,"hit":false,"id":"toast","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":3}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:1166)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:487)
+
+INSTRUMENTATION_STATUS: stream=
+Error in unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(fr.roaddeck.launcher.SplitScreenAndroid10Test):
+java.lang.AssertionError: Timed out: missing navigation is explained in the visible launcher. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":0,"screenHeight":0,"phaseElapsedMs":144488,"phaseSamples":0,"waitCondition":false,"waitReason":"idle","stableSamples":0,"scanDurationMs":0,"getWindowsDurationMs":0,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"","frameExclusionCount":0,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":false,"barInsetsSource":"","barStableInsets":{"left":0,"top":0,"right":0,"bottom":0},"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":false,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[]}. Last DOM probe: DOM answered {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"settingsOpen":false,"settingsSection":"general","settingsPage":"general","wazeSetupText":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","wazeHeadingVisible":false,"left":0,"top":0,"width":0,"height":0,"tag":"DIV","text":"Installez et ouvrez Waze une première fois, puis relancez RoadDeck.","disabled":false,"visible":false,"hit":false,"id":"toast","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":3}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:1166)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:487)
+
+INSTRUMENTATION_STATUS: test=unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.SplitScreenAndroid10Test
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=automaticEntryCanBeCancelledThenStartedWithoutRepeatingOnRecovery
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+fr.roaddeck.launcher.StartupLoadingRenderingTest:
+INSTRUMENTATION_STATUS: test=curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=curtainIsOpaqueAndCancelRemainsAccessibleAtThreeAspectRatios
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=fr.roaddeck.launcher.StartupLoadingRenderingTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=9
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=indeterminateAnimationChangesItsPixelsWithoutMovingTextOrCancel
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 168.397
+There was 1 failure:
+1) unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(fr.roaddeck.launcher.SplitScreenAndroid10Test)
+java.lang.AssertionError: Timed out: missing navigation is explained in the visible launcher. Engine snapshot: {"mode":"split","active":false,"requested":false,"accessibilityGranted":true,"serviceConnected":true,"startupVisible":false,"startupPending":false,"startupPlacementConfirmed":false,"startupSuspended":false,"startupError":"","panelReady":false,"barMaskEnabled":true,"barMaskTemporarilyRevealed":false,"barMaskStatus":"Masquage des barres en attente de l’écran partagé.","splitActionAvailability":"unknown","message":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","state":"IDLE","failureStage":"","dividerObserved":false,"screenWidth":0,"screenHeight":0,"phaseElapsedMs":144488,"phaseSamples":0,"waitCondition":false,"waitReason":"idle","stableSamples":0,"scanDurationMs":0,"getWindowsDurationMs":0,"ownerQueriesPending":0,"unknownOwners":0,"ownerQueryCount":0,"lastRootDurationMs":0,"maximumRootDurationMs":0,"lastToggleDurationMs":0,"dividerCovered":false,"frameEnabled":true,"frameVisible":false,"frameGeometryAuthoritative":false,"frameStatus":"Habillage en attente du partage Waze \/ RoadDeck.","frameInsets":{"left":12,"top":12,"right":12,"bottom":12},"framePaintedPixels":0,"frameNavigationPaintedPixels":0,"framePreview":false,"frameRevision":-1,"frameDrawnRevision":-1,"frameObstructionReason":"","frameExclusionCount":0,"frameRegionallyExcludedWindows":0,"frameIgnoredBelowPair":0,"frameAmbiguousSystemWindows":0,"frameBarInsetsObserved":false,"barInsetsSource":"","barStableInsets":{"left":0,"top":0,"right":0,"bottom":0},"frameMaxInsetPx":0,"framePlacementFallback":false,"decorationObstructed":false,"barMaskVisible":false,"barMaskPlacementConfirmed":false,"barMaskBounds":[],"barMaskRequestedBounds":[],"barMaskError":"","frameExclusions":[]}. Last DOM probe: DOM answered {"panelSettings":false,"dpr":1,"viewportWidth":1280,"viewportHeight":720,"settingsOpen":false,"settingsSection":"general","settingsPage":"general","wazeSetupText":"Prêt à ouvrir Waze à gauche et RoadDeck à droite.","wazeHeadingVisible":false,"left":0,"top":0,"width":0,"height":0,"tag":"DIV","text":"Installez et ouvrez Waze une première fois, puis relancez RoadDeck.","disabled":false,"visible":false,"hit":false,"id":"toast","activity":"MainActivity","nativeX":0,"nativeY":0,"nativeWidth":1280,"nativeHeight":720,"url":"https:\/\/appassets.androidplatform.net\/assets\/ui\/index.html","progress":100,"viewShown":true,"callbackDelayMs":3}
+	at org.junit.Assert.fail(Assert.java:89)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.await(SplitScreenAndroid10Test.java:1166)
+	at fr.roaddeck.launcher.SplitScreenAndroid10Test.unavailableNavigationLeavesAnActionableLauncherWithoutLoadingLoop(SplitScreenAndroid10Test.java:487)
+
+FAILURES!!!
+Tests run: 9,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

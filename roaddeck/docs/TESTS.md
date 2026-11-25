@@ -1,48 +1,76 @@
-# Vérification RoadDeck 0.5.3 — cadre visible autour de Waze
+# Vérification RoadDeck 0.5.4
 
-## Résultat et changement
+## Résultat et portée
 
-La version conserve le partage natif Waze à gauche / RoadDeck à droite. Une fenêtre d’accessibilité passive ajoute quatre marges sombres de 12 dp par défaut, une ouverture arrondie de rayon 18 dp et un accent violet de 2 dp. Le raccord central rejoint le panneau droit. Les marges recouvrent les pixels périphériques de Waze ; sa fenêtre n’est pas redimensionnée par cette décoration.
+La compilation et les deux jobs du commit indiqué dans `BUILD_VERIFIE.json` ont
+réussi. L’APK release est signée avec le même certificat que les versions
+précédentes. Signature v2, alignement, version 0.5.4/code10 et absence de fixture
+dans l’APK vérifiés.
 
-Réglages → Waze → Habillage autour de Waze permet d’activer le cadre et de régler chaque marge de 0 à 40 dp. « Tester l’habillage (5 s) » ajoute un repère temporaire explicite. Aucune nouvelle autorisation ni application tierce n’est ajoutée.
+Les essais installent la variante debug issue du même commit. Le binaire release
+signé n’est pas installé dans l’émulateur. La navigation est une application
+Android de test séparée, explicitement `testOnly` ; Waze réel et l’autoradio
+ne sont pas disponibles ici.
 
-## Essais exécutés
+## Android 10
 
-- Compilation APK versionName 0.5.3 / versionCode 9.
-- 7 944 assertions de géométrie et tests JUnit de filtrage des diagnostics réussis.
-- 133 assertions JavaScript réussies et syntaxe ES2019 vérifiée. Les commandes de décoration ne lancent ni ne redimensionnent Waze.
-- Android 10/API29 : cinq tests instrumentés réussis. Quatre vérifient les pixels du cadre, l’ouverture transparente, une exclusion locale, une exclusion totale, le placement hors des barres système et le repère temporaire.
-- Le parcours Android réel de la cinquième épreuve utilise deux activités séparées : lancement par toucher sur le bouton visible, redimensionnement natif, clics aux quatre coins sous l’overlay, quatre marges visibles, cadre désactivé/réactivé sans déplacement, expiration du repère, réglages dans la tâche droite et retour au plein écran avec retrait de l’habillage.
-- Les captures émulateur avec et sans cadre sont comparées. Huit pixels de largeur sur chacun des quatre côtés présentent le fond sombre ; le centre de la surface gauche reste inchangé. Les captures ont aussi été examinées visuellement.
-- Android 16/API36 : connexion du service, ouverture de l’activité, passage par les réglages Android puis retour. PID stable et aucune ANR, exception fatale Java ou marqueur de crash natif observé pendant ce parcours court. Ce test ne valide pas le partage sur Android 16.
-- Signature APK v2 et alignement vérifiés. Certificat identique à la livraison précédente.
+Neuf tests instrumentés réussis : quatre tests de rendu du cadre, deux tests de
+rendu du chargement et trois parcours avec les véritables fenêtres Android.
 
-Les résultats, captures sans retouche, empreintes et détails des jobs sont dans docs/verification-0.5.3/ et BUILD_VERIFIE.json.
+- Une entrée normale `MAIN`/`LAUNCHER` ouvre la paire sans appuyer sur Ouvrir Waze.
+- Le chargement est capturé dans l’écran composé, sur les quatre bords physiques.
+  Le bouton Annuler est actionné par un vrai toucher ; retour aux réglages et
+  absence de relance automatique vérifiés.
+- Une nouvelle entrée démarre le partage ; le chargement se retire après la
+  confirmation des fenêtres et du premier rendu WebView du panneau.
+- La fixture de navigation indisponible laisse un message visible et l’interface
+  utilisable. Elle est réactivée à la fin de ce test.
+- Les bandes supérieure et inférieure sont mesurées indépendamment depuis le
+  contenu natif de la navigation. Leur couverture complète et leurs pixels sont
+  comparés au fond sombre attendu. Un appui
+  réaffiche les commandes pendant huit secondes. Les masques reviennent ensuite,
+  sans modifier les rectangles des applications.
+- Les quatre côtés du cadre, les commandes aux coins de la navigation, les
+  réglages dans la tâche droite et le retour en plein écran restent vérifiés.
+- Le rendu logiciel du chargement est opaque sur trois formats ; deux phases
+  d’animation produisent des pixels différents et gardent le bouton immobile.
+  Deux dessins de la même phase sont identiques pixel pour pixel.
 
-Le repère temporaire est vérifié par les rendus bitmap et par son état natif avec expiration. La capture split-frame-preview.png, prise immédiatement après son activation, ne montre pas le repère et ne confirme donc pas visuellement le badge. Elle est conservée comme capture brute, sans être utilisée comme preuve de son affichage. Les captures avec/sans cadre et leur comparaison sont les preuves du contour visible.
+Les captures ont également été examinées visuellement. Elles ne sont pas
+retouchées. La paire native et les bandes sont contrôlées par géométrie et par
+captures ; un booléen du service ne suffit pas à valider le résultat visuel.
 
-## Limites exactes
+## Autres contrôles
 
-Les émulateurs installent la variante debug issue du commit de sources indiqué dans BUILD_VERIFIE.json. L’APK release du même commit est signée et contrôlée séparément ; ce binaire signé n’a pas été installé pendant ces essais.
+146 assertions JavaScript et syntaxe ES2019. Tests unitaires Android de géométrie
+(7 944 assertions) et de diagnostic. Six tests du parseur de connexion.
 
-L’application de navigation utilisée pour les tests est une fixture Android distincte, explicitement marquée testOnly. Ce n’est pas Waze ; elle n’est jamais incluse dans l’APK livrée. Waze réel et l’autoradio du client ne sont pas disponibles ici. Le client a confirmé le partage de la version précédente sur son Android 10. Le nouveau cadre reste à observer sur cet appareil.
+Les deux émulateurs reçoivent quatre cœurs si l’hôte en fournit au moins quatre.
+Le retour aux réglages conserve une vérification des pixels réellement composés,
+avec une attente maximale de quinze secondes ; le temps observé est enregistré.
 
-La cause exacte de l’absence de l’ancien contour sur sa photo n’a pas été établie. La version corrige plusieurs causes possibles : exclusions de fenêtres situées derrière la paire et suppression globale à cause de petites superpositions. Les bandes système observées restent protégées. Une grande fenêtre système au-dessus des applications dont la nature n’est pas déterminable conserve un blocage expliqué dans le diagnostic.
+Android 16 : préparation de l’émulateur avant toute installation RoadDeck, puis trois
+échantillons CPU consécutifs inférieurs à 85 %, et application lancée
+à froid. Aucun préchargement de RoadDeck ou WebView, aucune suppression des
+contrôles ANR/PID. Connexion du service et aller-retour entre l’application et les
+réglages, PID stable, aucune ANR ou erreur fatale observée pendant ce parcours.
+Ce contrôle court ne teste ni le partage Android 16 ni tous les micrologiciels.
 
-Le statut « Habillage dessiné » exige un dessin de la géométrie courante avec une région peinte positive autour de Waze. Il ne constitue pas, seul, une preuve du résultat final du compositeur. Les captures couvrent cette vérification sur l’émulateur.
+## Limites
 
-Aucun identifiant Tuya n’est intégré au code ou à l’APK. Le portail physique, les comptes musicaux et la radio en déplacement n’ont pas été testés dans cette livraison.
+Android conserve les barres natives et l’espace réservé. L’habillage les masque
+visuellement ; Waze n’est pas redimensionné pour récupérer cet espace. Un appui
+sur la bande ou le bouton Android rend les commandes accessibles.
 
-## Documentation Android consultée
+Le démarrage après mise sous tension dépend de la sélection de RoadDeck comme
+accueil et du comportement du constructeur. Le test automatise une entrée du
+lanceur ; aucun démarrage physique d’autoradio n’a été effectué.
 
-- [Ordre des couches des fenêtres](https://developer.android.com/reference/android/view/accessibility/AccessibilityWindowInfo#getLayer()).
-- [Overlay d’accessibilité et passage des touchers](https://developer.android.com/reference/android/view/WindowManager.LayoutParams#FLAG_NOT_TOUCHABLE).
-- [Limites stables des barres système](https://developer.android.com/reference/android/view/WindowInsets#getStableInsetTop()).
+La présence des deux fenêtres et le rendu du panneau ne prouvent pas que Waze
+a fini son téléchargement de cartes, son identification ou le calcul d’un trajet.
+Les comptes musicaux, le portail Tuya réel et les réseaux en conduite ne sont
+pas testés par cette mise à jour. Aucun identifiant Tuya n’est intégré.
 
-## Observations pendant la CI
-
-Premier passage (45434843149, commit ad3b7abb) : le test visuel a révélé que les rectangles des applications incluaient les barres Android. Les marges haute et basse étaient donc effacées. Le dessin a été corrigé pour entourer la surface disponible entre ces bandes, sans changer les dimensions des tâches.
-
-Deuxième passage (45436602276, commit 28842f90) : le parcours natif Android 10 complet a réussi. Le seul échec Android 10 concernait une comparaison bitmap trop stricte : 56 pixels d’arrondis variaient d’au plus 1 niveau alpha et 2 niveaux RGB prémultipliés. Aucun intérieur uniforme ne changeait. Le test final tolère uniquement ce lissage sur des voisinages non uniformes, avec silhouette inchangée ; il rejette toujours les pixels ajoutés au centre et les déplacements.
-
-Le deuxième passage Android 16 a observé une ANR réelle de MainActivity, dans WebView / OpenGL émulé, avec CPU à 99 % et forte pression mémoire. Waze et le cadre n’étaient pas lancés. Le symptôme avait déjà été conservé dans les preuves 0.5.1. L’émulateur final a reçu 4 Gio de mémoire après vérification de la capacité disponible du runner, en gardant le démarrage à froid, les délais et les contrôles ANR/PID. Le dernier contrôle de 37,322 secondes a réussi ; il ne démontre pas la disparition de ce problème sur tous les appareils.
+Les preuves des versions précédentes restent dans leurs répertoires nommés.
+Les éventuelles tentatives échouées de cette version sont consignées dans
+`BUILD_VERIFIE.json`, sans être présentées comme des succès.

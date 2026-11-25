@@ -1,68 +1,103 @@
 {
-  "source_commit": "7e5e44781d87bab15b10769fc56046a2fa367c58",
-  "ci_run": 45438472321,
-  "unsigned_artifact_sha256": "c92eccfc8ad89ada00ba6fe20fa661a00166ef7e8cc48f6bf9423cf1f7845426",
-  "apk_sha256": "66955890f4364699770a2ec2a91a8d084947d8c10c374adfcdcc05d106cd83f4",
-  "size": 3280676,
+  "source_commit": "34382fb862a9b4e8cb024d0884ef7ee49987e50e",
+  "ci_run": 45666807309,
+  "unsigned_artifact_sha256": "e4f3d1af8a1739969ff85c6799aa89607b78cb994d3451de0c0cd1ec78e59b1a",
+  "apk_sha256": "b444751539dc22bad756aaf888b8bb98fd1c37a15c3ac152222dc3c4fd396d96",
+  "size": 3297060,
   "certificate_sha256": "00a0c67f5e9185dab9f2966b3554fe76b77a8ddc671be2627c1fa4f50beb7b8d",
   "signature_v2": true,
   "same_certificate": true,
-  "versionCode": 9,
-  "versionName": "0.5.3",
+  "versionCode": 10,
+  "versionName": "0.5.4",
   "minSdk": 26,
   "targetSdk": 35,
   "fixture_in_release": false,
-  "verified_at_utc": "2026-11-24T16:41:46.723470+00:00",
-  "ci_url": "https://github.com/Gforcx/Fusionapp/actions/runs/45438472321",
+  "verified_at_utc": "2026-11-25T17:46:16.408748+00:00",
+  "ci_url": "https://github.com/Gforcx/Fusionapp/actions/runs/45666807309",
   "latest_workflow_all_jobs_passed": true,
-  "android10_instrumentation_tests_passed": 5,
+  "android10_instrumentation_tests_passed": 9,
   "android16_service_binding_passed": true,
-  "four_side_pixel_comparison_passed": true,
-  "manual_surround_screenshot_review_passed": true,
-  "frame_toggle_preserved_navigation_bounds": true,
-  "native_corner_touch_checks_passed": true,
-  "frame_removed_after_fullscreen_return": true,
-  "preview_expiry_checked": true,
-  "preview_visual_capture_confirmed": false,
-  "partial_and_total_clipping_bitmap_tests_passed": true,
+  "android16_measured_cpu_preparation_before_install": true,
+  "automatic_launcher_entry_tested": true,
+  "automatic_home_entry_tested": false,
+  "startup_compositor_captures_verified": true,
+  "startup_cancel_and_recovery_tested": true,
+  "recovery_settings_compositor_pixels_verified": true,
+  "missing_navigation_recovery_tested": true,
+  "startup_animation_bitmap_tests_passed": 2,
+  "system_bar_cover_compositor_pixels_verified": true,
+  "top_and_bottom_bar_coverage_independently_verified": true,
+  "system_bar_touch_reveal_tested": true,
+  "system_bar_cover_restoration_tested": true,
+  "system_bar_reveal_seconds": 8,
+  "native_system_bars_removed": false,
+  "application_windows_enlarged_into_system_bars": false,
+  "four_side_surround_test_passed": true,
+  "native_navigation_corner_touches_passed": true,
+  "settings_task_and_fullscreen_return_tested": true,
   "emulator_app_variant": "debug",
   "signed_release_installed_in_emulator": false,
-  "geometry_assertions_passed": 7944,
   "unit_tests_passed": 2,
-  "javascript_assertions_passed": 133,
+  "geometry_assertions_passed": 7944,
+  "javascript_assertions_passed": 146,
   "real_waze_tested_here": false,
   "user_head_unit_tested_here": false,
-  "previous_split_mode_confirmed_by_user_on_android10": true,
-  "frame_on_user_head_unit_confirmed": false,
+  "previous_split_and_surround_confirmed_by_user_on_android10": true,
   "third_party_activity_embedded_in_launcher_view": false,
   "tuya_credentials_bundled": false,
-  "artifact_digests": [
-    {
-      "name": "roaddeck-service-api29",
-      "id": 14942717257,
-      "digest": "sha256:78db876353f36d4537abb2d0ca4fcf706ee06f0045a52d92f5fcc0d0d157f558"
-    },
-    {
-      "name": "roaddeck-service-api36",
-      "id": 14941603693,
-      "digest": "sha256:d83a8ba47bcb799f4340e71446f34a8f670dd7eca28d6465e144e3979c40011a"
-    },
-    {
-      "name": "roaddeck-service-release-unsigned",
-      "id": 14941513475,
-      "digest": "sha256:c92eccfc8ad89ada00ba6fe20fa661a00166ef7e8cc48f6bf9423cf1f7845426"
-    }
-  ],
-  "android16_emulator_memory": {
-    "api": 36,
-    "host_available_mib": 14996,
-    "guest_ram_mib": 4096,
-    "cold_start_preserved": true,
-    "anr_checks_preserved": true
+  "artifact_digests": {
+    "roaddeck-service-api29": "sha256:3f61b8378cd88fd7a0e9a55f101590522b6f5208af395ea89b7985eeb742b0b5",
+    "roaddeck-service-api36": "sha256:09aa5d5bb5329d69c5eed48989e3e21d365881d2f05ccc6b509b014405d786c2",
+    "roaddeck-service-release-unsigned": "sha256:e4f3d1af8a1739969ff85c6799aa89607b78cb994d3451de0c0cd1ec78e59b1a"
   },
   "ci_attempt_notes": [
-    "Premier passage (45434843149, commit ad3b7abb) : le test visuel a révélé que les rectangles des applications incluaient les barres Android. Les marges haute et basse étaient donc effacées. Le dessin a été corrigé pour entourer la surface disponible entre ces bandes, sans changer les dimensions des tâches.",
-    "Deuxième passage (45436602276, commit 28842f90) : le parcours natif Android 10 complet a réussi. Le seul échec Android 10 concernait une comparaison bitmap trop stricte : 56 pixels d’arrondis variaient d’au plus 1 niveau alpha et 2 niveaux RGB prémultipliés. Aucun intérieur uniforme ne changeait. Le test final tolère uniquement ce lissage sur des voisinages non uniformes, avec silhouette inchangée ; il rejette toujours les pixels ajoutés au centre et les déplacements.",
-    "Le deuxième passage Android 16 a observé une ANR réelle de MainActivity, dans WebView / OpenGL émulé, avec CPU à 99 % et forte pression mémoire. Waze et le cadre n’étaient pas lancés. Le symptôme avait déjà été conservé dans les preuves 0.5.1. L’émulateur final a reçu 4 Gio de mémoire après vérification de la capacité disponible du runner, en gardant le démarrage à froid, les délais et les contrôles ANR/PID. Le dernier contrôle de 37,322 secondes a réussi ; il ne démontre pas la disparition de ce problème sur tous les appareils."
+    {
+      "run": 45652890800,
+      "commit": "3da22f95d6a02c1663c0ce530ad08a30b50583bd",
+      "android10": "failed: 5/9 tests; fullscreen tutorial interrupted startup, fixture disable command did not establish precondition, software renderer alpha254",
+      "android16": "passed: binding check, stable PID, 36.472s",
+      "corrections": "Production startup now pauses for focused Android system UI and waits for activity focus before first launch, with overall timeout preserved. Rendering fills remaining alpha below content using DST_OVER. Harness normally acknowledges first-use fullscreen tutorial and uses numeric current user for verified fixture state mutation."
+    },
+    {
+      "run": 45655002901,
+      "commit": "fe5e88ce3d69565412732f388494979728654672",
+      "android10": "failed: 2/9 tests; cancel UI node stale after screenshot and slow synchronized launch; backdrop Paint alpha persisted between frames. Manual native split, startup opacity, unavailable navigation and surround checks passed. Visual review also found bottom navigation not masked despite top-bar test success.",
+      "android16": "passed: service binding job",
+      "corrections": "Reset backdrop Paint alpha each draw and assert identical repeated phase. Cancel test launches asynchronously and touches live overlay node before expensive capture. System-bar dimensions now come only from activity stable insets, refreshed in the right panel; overlay insets cannot erase bottom band. Verify complete top and bottom coverage against native fixture content bounds."
+    },
+    {
+      "run": 45658075950,
+      "commit": "d972e5f12227922458ff67f03ecc06a9d143a301",
+      "android10": "failed 2/9: same-phase logo Paint state changed 135 pixels; final settings assertion targeted text below scroll fold. Complete native startup/cancel/restart, top+bottom system masks and manual surround paths passed preceding assertions. Manual image review also found cancellation recovery could leave the reused MainActivity WebView black after interrupted docking.",
+      "android16": "failed: real background ANR, main awaited HardwareRenderer and Chromium GPU waited emulator shader response amid guest CPU99%, PSI CPU91.99; no production Java blocking stack demonstrated. PID changed, correctly detected.",
+      "corrections": "Reset logo Paint before each draw; assert rendered settings title and active Waze tab rather than below-fold status. Require composed recovery title pixels, recreate only own MainActivity task on cancel/failure with automatic startup suppressed. Before API36 cold app test only, wait for three CPU samples below85%, bounded60s, with full measurement proof and unchanged ANR/PID gates."
+    },
+    {
+      "run": 45660584147,
+      "commit": "4f036648083b534f800a9b7b7b805cfcaadd5657",
+      "result": "Instrumentation compilation failed: JSONException not caught inside BooleanSupplier of new composed settings evidence helper; no emulator result for this commit.",
+      "corrections": "Catch checked JSON exception and fail explicitly with AssertionError; no production code or test assertion changed."
+    },
+    {
+      "run": 45661059323,
+      "commit": "4c9eea3e861eebc29f6e0f986da45d8c6c186bc7",
+      "android10": "8/9 passed. Manual/native automatic split, real cancellation recovery pixels, both system bar strips and animation determinism all passed. Only unavailable navigation test missed transient toast because synchronized activity launch waited past its visible duration. Text was present but hidden when queried.",
+      "android16": "Preparation failed before APK installation: 56 valid CPU deltas remained98.56-100% busy during60s on2core guest. No application runtime check for this attempt.",
+      "corrections": "Use ordinary asynchronous launcher entry also for unavailable-navigation scenario, preserving visible-toast assertion. Allocate4 guest CPU cores for API36 only when host affinity proves4 available; retain60s CPU preparation threshold85 and all ANR/PID gates."
+    },
+    {
+      "run": 45662863955,
+      "commit": "df859dad8f7b231ce982cdc204ac1f37f53d7d67",
+      "android10": "8/9 passed. All user feature checks and unavailable navigation passed. Cancellation recovery DOM was correct; composed recovery screenshot did not render within5s. Failure screenshot immediately afterwards shows correct settings. Same recovery MainActivity remained resumed; no navigation reset. OpenGLRenderer recorded5189ms then2076ms frames amid Google Play services initialization on2 guest CPU cores.",
+      "android16": "Passed: cold binding check, stable PID, no ANR/fatal markers.4guest CPUcores, CPU preparation40.696s, app check22.572s.",
+      "corrections": "No production change. Keep full composed title pixel and DOM gates, allow15s for composed readiness like existing DOM readiness budget. Use4guest CPUcores on API29 also when host affinity proves4 available. API29RAM remains2048MiB; preserve all failure and timing evidence."
+    },
+    {
+      "run": 45665212615,
+      "commit": "e3e32712eeb68eed9957a6875822b94570eb7cad",
+      "android10": "Process crashed in automatic cancellation/restart scenario: NullPointerException in MainActivity.showPendingPage atWebView.evaluateJavascript on destroyed activity. Six preceding tests passed including manual native pair, system masks and missing-navigation recovery. Renderer tests aftercrash did not execute.",
+      "android16": "Passed: coldservicebinding,stablePID,noANR/fatal,elapsed24.443s.",
+      "corrections": "Production MainActivity must reject late Javascript bridge commands and pending-page callbacks afteractivitydestroy/finish; retaining pendingnavigation untilready. Actual lifecyclecrash is not classified as emulator-only."
+    }
   ]
 }

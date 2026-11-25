@@ -1,0 +1,25 @@
+changedOutside=56 acceptedEdgeRounding=56 unexpected=0 partialAlpha=29 bothOpaque=27 flatOpaque=0 flatTransparent=0 alphaCoreChanges=0 maxDeltaARGB=1,255,128,255 maxPremultipliedDeltaRGB=1,1,2 permittedRegion=Rect(0, 80 - 8, 120)
+15,17 before=ff31284e after=ff32284e flat3x3=false acceptedEdgeRounding=true
+16,17 before=fe9769cb after=ff9669ca flat3x3=false acceptedEdgeRounding=true
+263,17 before=fe9769cb after=ff9669ca flat3x3=false acceptedEdgeRounding=true
+264,17 before=ff2f264b after=ff30274c flat3x3=false acceptedEdgeRounding=true
+14,18 before=ff201d38 after=ff201d39 flat3x3=false acceptedEdgeRounding=true
+15,18 before=fe9266c5 after=ff9166c4 flat3x3=false acceptedEdgeRounding=true
+264,18 before=fe9165c3 after=ff9065c2 flat3x3=false acceptedEdgeRounding=true
+265,18 before=ff201d39 after=ff211e3a flat3x3=false acceptedEdgeRounding=true
+13,19 before=ff0c1020 after=ff0d1021 flat3x3=false acceptedEdgeRounding=true
+17,19 before=1ff00ff after=28080ff flat3x3=false acceptedEdgeRounding=true
+262,19 before=1ff00ff after=28080ff flat3x3=false acceptedEdgeRounding=true
+265,19 before=ff7d58ab after=ff7c58aa flat3x3=false acceptedEdgeRounding=true
+16,20 before=a9966cc after=ba25dd1 flat3x3=false acceptedEdgeRounding=true
+263,20 before=d9d62d8 after=e926dc8 flat3x3=false acceptedEdgeRounding=true
+12,21 before=ff111326 after=ff121327 flat3x3=false acceptedEdgeRounding=true
+13,21 before=fe8d62be after=ff8c62be flat3x3=false acceptedEdgeRounding=true
+15,21 before=309a6acf after=319768cb flat3x3=false acceptedEdgeRounding=true
+264,21 before=39986bce after=3a9a6acf flat3x3=false acceptedEdgeRounding=true
+266,21 before=ff8960ba after=ff8961ba flat3x3=false acceptedEdgeRounding=true
+267,21 before=ff111326 after=ff121327 flat3x3=false acceptedEdgeRounding=true
+11,23 before=ff0c1020 after=ff0d1021 flat3x3=false acceptedEdgeRounding=true
+12,23 before=ff9166c4 after=ff9266c4 flat3x3=false acceptedEdgeRounding=true
+268,23 before=ff0c1020 after=ff0d1021 flat3x3=false acceptedEdgeRounding=true
+14,24 before=89f60df after=98e71c6 flat3x3=false acceptedEdgeRounding=true

@@ -1,0 +1,1 @@
+changedOutside=0 acceptedEdgeRounding=0 unexpected=0 partialAlpha=0 bothOpaque=0 flatOpaque=0 flatTransparent=0 alphaCoreChanges=0 maxDeltaARGB=0,0,0,0 maxPremultipliedDeltaRGB=0,0,0 permittedRegion=Rect(12, 80 - 268, 120)

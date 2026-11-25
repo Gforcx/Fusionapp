@@ -1,67 +1,80 @@
-# RoadDeck 0.5.3 — cadre autour de Waze
+# RoadDeck 0.5.4 — démarrage animé et habillage des barres Android
 
-Application Android paysage, package `fr.roaddeck.launcher`, versionCode 9,
-versionName `0.5.3`, Android 8 minimum. Cible de validation : Android 10.
+Application Android paysage, package `fr.roaddeck.launcher`, versionCode **10**,
+versionName **0.5.4**, Android 8 minimum. Appareil cible : autoradio Android 10.
 
-## Changement
+## Fonctionnement
 
-Waze occupe une vraie fenêtre Android réduite à gauche. Une activité RoadDeck
-occupe la partie droite. Le grand panneau qui couvrait Waze dans la version 0.4
-est retiré du manifeste. L’autorisation « afficher par-dessus » n’est plus demandée.
+Waze reste une application dans une vraie fenêtre Android à gauche. Le panneau
+RoadDeck occupe la fenêtre de droite. L’assistant d’accessibilité intégré place
+les deux fenêtres et vérifie leurs dimensions. Il utilise leurs noms et leurs
+limites, sans lire les messages ni capturer l’écran.
 
-Un assistant d’accessibilité intégré demande le partage au système et vérifie les
-dimensions des deux applications avant d’annoncer que le partage fonctionne.
-Il lit les noms d’application et les limites des fenêtres ; il ne lit pas les
-messages et ne capture pas l’écran. Une surface non tactile dessine un cadre autour de Waze et remplit
-l’espace vide mesuré du séparateur. Elle ne redimensionne pas Waze.
+À l’ouverture normale de RoadDeck, le démarrage automatique prépare cette paire.
+Un écran natif animé, avec une route violette et les étapes de préparation, couvre
+la mise en place. Il se retire lorsque la disposition est confirmée et que le
+panneau droit a terminé son premier rendu. **Annuler** permet d’interrompre la
+préparation. Un échec ou un délai dépassé rend la main avec un message.
+Cette confirmation porte sur les fenêtres ; elle ne prouve pas que Waze a chargé
+ses cartes ou trouvé un itinéraire.
 
-Le micrologiciel de l’autoradio et Waze doivent accepter le partage natif.
-RoadDeck ne peut pas imposer ce support, ni garantir la disparition de toutes les
-barres système du constructeur. Aucun Shizuku, root ou ordinateur n’est nécessaire
-pour activer le service sur un appareil qui accepte le partage.
+L’habillage peut recouvrir les bandes Android mesurées pour raccorder visuellement
+les deux parties. **Toucher une bande masquée** ou le bouton **Android** réaffiche
+les commandes pendant huit secondes. Le masquage est retiré lorsque la paire
+n’est plus active ou que le contexte ne permet plus de l’afficher.
 
-## Installation
+Android conserve ses barres et l’espace qu’elles occupent. Ce masque visuel
+n’agrandit pas Waze et ne supprime pas les fenêtres système. Le micrologiciel de
+l’autoradio et Waze doivent accepter le partage natif. Aucun root, Shizuku ou
+ordinateur n’est nécessaire sur un appareil compatible.
 
-Installer l’APK signée comme mise à jour de RoadDeck, sans désinstaller.
-Ouvrir **Réglages → Waze → Activer l’assistant d’écran partagé**.
-Activer **RoadDeck — écran partagé** dans les réglages d’accessibilité Android.
-Revenir dans RoadDeck et appuyer sur **Afficher Waze à gauche**.
-Le bouton **Waze en grand** ferme la paire et rend toute la largeur à Waze.
+## Installation et réglages
+
+Installer l’APK signée comme mise à jour, sans désinstaller RoadDeck.
+L’assistant doit être activé dans **Réglages → Waze → Activer l’assistant d’écran
+partagé**, puis **RoadDeck — écran partagé** dans l’accessibilité Android.
+
+Dans **Réglages → Waze**, deux options sont activées par défaut :
+
+- **Ouvrir Waze au démarrage** prépare la paire à l’ouverture de RoadDeck.
+- **Masquer visuellement les barres Android** active les bandes de raccord.
+
+Le réglage **Habillage autour de Waze** reste indépendant. Ses quatre marges de
+12 dp sont réglables de 0 à 40 dp. Elles recouvrent les bords de la carte sans
+modifier la taille de la fenêtre. **Waze en grand** ferme la paire.
+
+Pour l’ouverture au démarrage de l’autoradio, choisir RoadDeck comme application
+d’accueil dans les réglages Android, accessibles depuis **Réglages → Général**.
+Le lancement dépend alors de l’accueil du système. L’application n’ajoute pas de
+récepteur de démarrage `BOOT_COMPLETED`.
 
 ## Fonctions conservées
 
-- Un seul panneau musique/radio. Commandes de sessions multimédias Android
-  pour Spotify, Deezer ou le lecteur choisi, après autorisation des notifications.
+- Un panneau unique musique/radio, avec les sessions multimédias Android pour
+  Spotify, Deezer ou le lecteur choisi, après autorisation des notifications.
 - Radio internet Media3, annuaire Radio Browser, favoris et tampon réglable.
-- Météo Open-Meteo, ville configurable, cache local horodaté.
+- Météo Open-Meteo, ville configurable et cache local horodaté.
 - Scène Tuya Cloud configurée sur l’appareil, secret chiffré et confirmation.
 
-## Compilation et essais
+## Compilation et portée des essais
 
 JDK 17, Gradle 8.9, Android SDK 35, Android Gradle Plugin 8.7.3.
-`gradle :app:assembleRelease` produit une APK non signée quand la clé privée est
-absente. Ne jamais installer cette APK non signée ; la livraison est signée séparément.
-Ne jamais publier `signing/`, les fichiers keystore ou une archive privée du projet.
+`gradle :app:assembleRelease` compile l’application ; la distribution installable
+doit être signée. `node tests/test_split_ui.cjs` vérifie l’interface et
+`gradle :app:testDebugUnitTest` vérifie la géométrie.
 
-`node tests/test_split_ui.cjs` vérifie la compatibilité ES2019 et les réglages compacts.
-`gradle :app:testDebugUnitTest` vérifie la géométrie du partage.
+Le module optionnel `fixture` et les essais instrumentés s’activent avec
+`-ProaddeckFixtures=true`. La fixture est une application de navigation de test
+séparée. Elle remplace Waze uniquement dans ces essais et n’est jamais livrée dans
+l’APK RoadDeck. Un succès sur émulateur ne démontre pas le fonctionnement de Waze
+réel sur le micrologiciel de l’autoradio.
 
-Le module optionnel `fixture` et les tests instrumentés sont activés par
-`-ProaddeckFixtures=true`. La fixture est une **application de navigation de test**,
-isolée, qui utilise le nom de paquet attendu par le coordinateur. Elle n’est pas
-Waze, n’est pas intégrée à RoadDeck et n’est jamais livrée à l’utilisateur.
-Les essais émulateur sont prévus pour vérifier le redimensionnement, les quatre
-coins tactiles, les réglages à droite et le retour au plein écran. Leur résultat
-n’est pas une preuve du fonctionnement de Waze réel sur l’autoradio du client.
+Les résultats applicables sont ceux de la version et du commit explicitement
+indiqués dans `BUILD_VERIFIE.json` et [docs/TESTS.md](docs/TESTS.md). Les preuves
+conservées dans `docs/verification-0.5.3/` concernent **la version précédente**.
+Les ANR observées durant des essais anciens restent des faits historiques ; elles
+ne sont pas annoncées comme résolues sur Xiaomi/HyperOS par cette mise à jour.
 
-## Diagnostic du service
-
-Après un échec, ouvrir Réglages → Informations → Copier le diagnostic et coller le rapport dans la conversation. Aucun envoi automatique. La version0.5.1 corrige la distinction accord/connexion et réduit le travail de rendu des réglages ; elle ne revendique pas une panne HyperOS résolue.
-
-### ANR observée pendant les essais API36
-
-Le premier essai 0.5.1 (run CI 45164302888, commit 4c341ec6) a été interrompu par un arrêt du processus pour ANR de MainActivity. La cause interne reste à établir. Un passage ultérieur réussi sur l’émulateur ne prouve pas que cet arrêt a disparu sur Xiaomi/HyperOS. Voir docs/TESTS.md pour la portée des essais.
-
-## Habillage commun
-
-Activé par défaut dans Réglages → Waze → Habillage autour de Waze. Quatre marges de 12 dp, réglables de 0 à 40, entourent une ouverture arrondie transparente. Le fond sombre se raccorde au panneau droit. Les marges recouvrent les pixels périphériques de Waze ; la géométrie de sa fenêtre reste contrôlée par Android. Le bouton « Tester l’habillage (5 s) » affiche un repère temporaire dans la partie gauche. Voir docs/CHANGELOG-0.5.3.md et docs/TESTS.md.
+Après un échec : **Réglages → Informations → Copier le diagnostic**. Aucun rapport
+n’est envoyé automatiquement. Voir [les changements 0.5.4](docs/CHANGELOG-0.5.4.md)
+pour les limites du masquage et les sources Android.

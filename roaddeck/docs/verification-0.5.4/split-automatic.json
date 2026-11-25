@@ -1,0 +1,195 @@
+{
+  "mode": "split",
+  "active": true,
+  "requested": false,
+  "accessibilityGranted": true,
+  "serviceConnected": true,
+  "startupVisible": false,
+  "startupPending": false,
+  "startupPlacementConfirmed": false,
+  "startupSuspended": false,
+  "startupError": "",
+  "panelReady": true,
+  "barMaskEnabled": true,
+  "barMaskTemporarilyRevealed": false,
+  "barMaskStatus": "Barres recouvertes par l’habillage. Touchez la bande pour afficher Android.",
+  "splitActionAvailability": "unknown",
+  "message": "Waze à gauche, RoadDeck à droite.",
+  "state": "RUNNING",
+  "failureStage": "",
+  "dividerObserved": true,
+  "screenWidth": 1280,
+  "screenHeight": 720,
+  "phaseElapsedMs": 2636,
+  "phaseSamples": 4,
+  "waitCondition": true,
+  "waitReason": "confirming complete pair",
+  "stableSamples": 2,
+  "scanDurationMs": 2,
+  "getWindowsDurationMs": 0,
+  "ownerQueriesPending": 0,
+  "unknownOwners": 0,
+  "ownerQueryCount": 6,
+  "lastRootDurationMs": 26,
+  "maximumRootDurationMs": 1159,
+  "lastToggleDurationMs": 1,
+  "dividerCovered": false,
+  "frameEnabled": true,
+  "frameVisible": true,
+  "frameGeometryAuthoritative": true,
+  "frameStatus": "Habillage dessiné autour de Waze.",
+  "frameInsets": {
+    "left": 12,
+    "top": 12,
+    "right": 12,
+    "bottom": 12
+  },
+  "framePaintedPixels": 44542,
+  "frameNavigationPaintedPixels": 32934,
+  "framePreview": false,
+  "frameRevision": 1,
+  "frameDrawnRevision": 1,
+  "frameObstructionReason": "",
+  "frameExclusionCount": 8,
+  "frameRegionallyExcludedWindows": 2,
+  "frameIgnoredBelowPair": 0,
+  "frameAmbiguousSystemWindows": 0,
+  "frameBarInsetsObserved": true,
+  "barInsetsSource": "SidePanelActivity",
+  "barStableInsets": {
+    "left": 0,
+    "top": 24,
+    "right": 0,
+    "bottom": 48
+  },
+  "frameMaxInsetPx": 32,
+  "framePlacementFallback": false,
+  "decorationObstructed": false,
+  "barMaskVisible": true,
+  "barMaskPlacementConfirmed": true,
+  "barMaskBounds": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 0,
+      "top": 672,
+      "right": 1280,
+      "bottom": 720
+    }
+  ],
+  "barMaskRequestedBounds": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 0,
+      "top": 672,
+      "right": 1280,
+      "bottom": 720
+    }
+  ],
+  "barMaskError": "",
+  "frameBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "frameNavigationBounds": {
+    "left": 0,
+    "top": 24,
+    "right": 635,
+    "bottom": 672
+  },
+  "framePanelBounds": {
+    "left": 645,
+    "top": 24,
+    "right": 1280,
+    "bottom": 672
+  },
+  "frameRequestedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "framePlacedBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "frameExclusions": [
+    {
+      "left": 0,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 0,
+      "top": 672,
+      "right": 1280,
+      "bottom": 720
+    },
+    {
+      "left": 0,
+      "top": 672,
+      "right": 635,
+      "bottom": 720
+    },
+    {
+      "left": 645,
+      "top": 672,
+      "right": 1280,
+      "bottom": 720
+    },
+    {
+      "left": 635,
+      "top": 672,
+      "right": 645,
+      "bottom": 720
+    },
+    {
+      "left": 0,
+      "top": 0,
+      "right": 635,
+      "bottom": 24
+    },
+    {
+      "left": 645,
+      "top": 0,
+      "right": 1280,
+      "bottom": 24
+    },
+    {
+      "left": 635,
+      "top": 0,
+      "right": 645,
+      "bottom": 24
+    }
+  ],
+  "wazeBounds": {
+    "left": 0,
+    "top": 0,
+    "right": 635,
+    "bottom": 720
+  },
+  "panelBounds": {
+    "left": 645,
+    "top": 0,
+    "right": 1280,
+    "bottom": 720
+  },
+  "testNote": "ACTION_MAIN\/CATEGORY_LAUNCHER alone opened the native pair",
+  "fixture": true,
+  "api": 29,
+  "realWazeTested": false
+}
